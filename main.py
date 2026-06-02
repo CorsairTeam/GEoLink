@@ -7,10 +7,9 @@ import notebook
 
 # Ligne de commande compilation : pyinstaller --noconsole main.py
 
-
 class MBTilesViewer:
     # fonction d'attente pour les commandes du menu
-    def fonction_temporaire():
+    def fonction_temporaire(self):
         pass
 
     def __init__(self, root, map_path_init):
@@ -18,6 +17,11 @@ class MBTilesViewer:
         self : instance de la classe MBTilesViewer\n
         root : fenêtre tkinter\n
         map_path_init : carte MBTiles sélectionnée"""
+
+        # Variables pour les hotspots
+        self.hotspot_x = tk.DoubleVar(value=0.5)
+        self.hotspot_y = tk.DoubleVar(value=0.5) 
+        self.altitude = tk.DoubleVar(value=0.0)    
 
         # Formatage de la fenêtre tkinter
         self.root = root
@@ -84,6 +88,9 @@ class MBTilesViewer:
         # Création de l'onglet points du notebook
         notebook.setup_points_tabs(self)
 
+        # Création de l'onglet lignes du notebook
+        notebook.setup_lignes_tabs(self)
+
     def setup_menu(self):
         """Gestion des options du menu"""
 
@@ -148,14 +155,13 @@ class MBTilesViewer:
 
         # Aide menu
         aide_menu = Menu(self.menu_bar, tearoff=0)
-        aide_menu.add_command(
-            label="Fichier Aide", command=lambda: fonction_temporaire()
-        )
+        aide_menu.add_command(label="Fichier Aide", command=lambda: fonction_temporaire())
+        aide_menu.add_command(label="Supprimer les Tooltips", command=lambda: fonction_temporaire())
+    
         self.menu_bar.add_cascade(label="Aide", menu=aide_menu)
 
         # Ajoute le menu dans la fenêtre principale
         self.root.config(menu=self.menu_bar)
-
 
 def choisir_carte():
     root = tk.Tk()
@@ -167,7 +173,6 @@ def choisir_carte():
     root.destroy()
     return map_path
 
-
 def main():
     # Selection de la carte MBTiles à charger
     map_path_init = "Retirer le commentaire"  # choisir_carte()
@@ -178,7 +183,6 @@ def main():
     root = tk.Tk()
     app = MBTilesViewer(root, map_path_init)
     root.mainloop()
-
 
 if __name__ == "__main__":
     main()
