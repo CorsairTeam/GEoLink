@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import Menu, ttk, filedialog
 from mbtiles_manager import MbtilesManager
 import database
-import notebook
+import notebook_manager
 
 # Ligne de commande compilation : pyinstaller --noconsole main.py
 
@@ -51,7 +51,8 @@ class MBTilesViewer:
         # Création de l'interface utilisateur
         self.setup_ui()
 
-        # Gérer la fermeture du programme en effacant les bases de données
+        # Implementation des événements
+        self.notebook.bind("<<NotebookTabChanged>>",lambda event: notebook_manager.on_tab_changed(self, event))        
         self.root.protocol("WM_DELETE_WINDOW", lambda: database.database_closing(self))
 
     def setup_ui(self):
@@ -86,10 +87,13 @@ class MBTilesViewer:
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
         # Création de l'onglet points du notebook
-        notebook.setup_points_tabs(self)
+        notebook_manager.setup_points_tabs(self)
 
         # Création de l'onglet lignes du notebook
-        notebook.setup_lignes_tabs(self)
+        notebook_manager.setup_lignes_tabs(self)
+
+        # Création de l'onglet polygones du notebook
+        notebook_manager.setup_polygones_tabs(self)
 
     def setup_menu(self):
         """Gestion des options du menu"""
@@ -162,7 +166,7 @@ class MBTilesViewer:
 
         # Ajoute le menu dans la fenêtre principale
         self.root.config(menu=self.menu_bar)
-
+  
 def choisir_carte():
     root = tk.Tk()
     root.withdraw()  # cache la fenêtre principale

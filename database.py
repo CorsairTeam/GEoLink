@@ -6,7 +6,7 @@ import utility
 
 def delete_selected_points(viewer):
     """Supprimer les points cochés de la base de données et du treeview"""
-    to_delete = [item for item, info in viewer.checked_items.items() if info["checked"]]
+    to_delete = [item for item, info in viewer.points_checked_items.items() if info["checked"]]
     if not to_delete:
         messagebox.showwarning("Suppression", "Aucun point sélectionné.")
         return
@@ -20,7 +20,7 @@ def delete_selected_points(viewer):
         conn.commit()
         conn.close()
         
-        load_points(viewer)
+        load_points_treeview(viewer)
         messagebox.showinfo("Suppression", f"{len(to_delete)} point(s) supprimé(s).")
         
     except sqlite3.Error as e:
@@ -29,23 +29,38 @@ def delete_selected_points(viewer):
         if 'conn' in locals():
             conn.close()
 
-def load_points(viewer):
+def load_points_treeview(viewer):
     """Met a jour le Tree view et affiche les points sur la carte"""
     for item in viewer.tree.get_children():
         viewer.tree.delete(item)
     
     #Checked_items : Stocke les informations des points enregistrés dans le treeview
-    viewer.checked_items = {}
+    viewer.points_checked_items = {}
     conn = sqlite3.connect("points.db")
     cursor = conn.cursor()
     cursor.execute("SELECT name, lat, lon, alt, scale, icon, color, hotspot_x, hotspot_y, label_color FROM points")
     for row in cursor.fetchall():
         item_id = viewer.tree.insert("", tk.END, values=("⬜", row[0]))
-        viewer.checked_items[item_id] = {"checked": False, "data": row}
+        viewer.points_checked_items[item_id] = {"checked": False, "data": row}
     conn.close()
     
     # # Mettre à jour l'affichage sur la carte
     # viewer.mbtiles_manager.draw_points()
+
+def load_points_line(viewer):
+    """Charger tous les points depuis points.db"""
+    viewer.points_listbox.delete(0, tk.END)
+    try:
+        conn = sqlite3.connect("points.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM points ORDER BY name")
+        points = cursor.fetchall()
+        conn.close()
+        
+        for point in points:
+            viewer.points_listbox.insert(tk.END, point[0])
+    except sqlite3.Error:
+        pass
 
 def point_add(name, lat, lon, alt, scale, icon, color, hotspot_x, hotspot_y, label_color):
     """Ajouter un point à la base de données"""
@@ -182,7 +197,7 @@ def create_point_from_deg(viewer):
         return
 
     # Recharger la liste des points
-    load_points(viewer)
+    load_points_treeview(viewer)
     if result == "updated":
         messagebox.showinfo("Succès", f"Point '{name}' mis à jour avec succès")
     else:
@@ -259,7 +274,7 @@ def create_point_from_deg_min(viewer):
         return
 
     # Recharger la liste des points
-    load_points(viewer)
+    load_points_treeview(viewer)
     if result == "updated":
         messagebox.showinfo("Succès", f"Point '{name}' mis à jour avec succès")
     else:
@@ -331,7 +346,7 @@ def create_point_from_deg_min_sec(viewer):
         return
 
     # Recharger la liste des points
-    load_points(viewer)
+    load_points_treeview(viewer)
     if result == "updated":
         messagebox.showinfo("Succès", f"Point '{name}' mis à jour avec succès")
     else:
@@ -383,7 +398,7 @@ def create_point_from_calamar(viewer):
         return
 
     # Recharger la liste des points
-    load_points(viewer)
+    load_points_treeview(viewer)
     if result == "updated":
         messagebox.showinfo("Succès", f"Point '{name}' mis à jour avec succès")
     else:
@@ -461,7 +476,7 @@ def create_point_from_radial(viewer):
         return
 
     # Recharger la liste des points
-    load_points(viewer)
+    load_points_treeview(viewer)
     if result == "updated":
         messagebox.showinfo("Succès", f"Point '{name}' mis à jour avec succès")
     else:
@@ -512,7 +527,7 @@ def create_point_from_click(viewer):
         return
 
     # Recharger la liste des points
-    load_points(viewer)
+    load_points_treeview(viewer)
     if result == "updated":
         messagebox.showinfo("Succès", f"Point '{name}' mis à jour avec succès")
     else:
