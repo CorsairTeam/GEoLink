@@ -4,48 +4,59 @@ from tkinter import messagebox
 import tkinter as tk
 import utility
 
-def delete_selected_points(viewer):
-    """Supprimer les points cochés de la base de données et du treeview"""
-    to_delete = [item for item, info in viewer.points_checked_items.items() if info["checked"]]
-    if not to_delete:
-        messagebox.showwarning("Suppression", "Aucun point sélectionné.")
-        return
+def load_item_treeview(viewer,database_name,checked_items,treeview,table_name):
+    """Charger toutes les lignes depuis lignes.db"""
     
+    for item in treeview.get_children():
+        treeview.delete(item)
+
+    #Checked_items : Stocke les informations des points enregistrés dans le treeview
+    checked_items.clear()
+
     try:
-        conn = sqlite3.connect("points.db")
+        conn = sqlite3.connect(database_name)
         cursor = conn.cursor()
-        for item in to_delete:
-            name = viewer.tree.item(item)["values"][1]
-            cursor.execute("DELETE FROM points WHERE name = ?", (name,))
-        conn.commit()
+        cursor.execute(f"SELECT name FROM {table_name}")
+        lines = cursor.fetchall()
         conn.close()
         
-        load_points_treeview(viewer)
-        messagebox.showinfo("Suppression", f"{len(to_delete)} point(s) supprimé(s).")
-        
+        for row in lines:
+            item_id = treeview.insert("", tk.END, values=("⬜", row[0]))
+            checked_items[item_id] = {"checked": False, "data": row}
+    except sqlite3.Error:
+        pass
+
+    #TODO :  # Mettre à jour l'affichage sur la carte
+    # viewer.mbtiles_manager.draw_points()
+
+def delete_selected_items(viewer,database_name,checked_items,treeview,table_name):
+    """Supprimer les éléments cochés de la base de données et du treeview"""
+    to_delete = [item for item, info in checked_items.items() if info["checked"]]
+    
+    if not to_delete:
+        messagebox.showwarning("Suppression", "Aucun élément sélectionné.")
+        return
+    try:
+        conn = sqlite3.connect(database_name)
+        cursor = conn.cursor()
+        for item in to_delete:
+            name = treeview.item(item)["values"][1]
+            cursor.execute(f"DELETE FROM {table_name} WHERE name = ?", (name,))
+        conn.commit()
+        conn.close()
+
+        # Recharger les données
+        if table_name == "points":
+            load_item_treeview(viewer,"points.db",viewer.points_checked_items,viewer.tree,"points")
+        elif table_name == "lines":
+            load_item_treeview(viewer,"lignes.db",viewer.lines_checked_items,viewer.lines_tree,"lines")
+        messagebox.showinfo("Suppression", f"{len(to_delete)} élément(s) supprimé(s).")
+
     except sqlite3.Error as e:
         messagebox.showerror("Erreur", f"Erreur lors de la suppression: {e}")
     finally:
         if 'conn' in locals():
             conn.close()
-
-def load_points_treeview(viewer):
-    """Met a jour le Tree view et affiche les points sur la carte"""
-    for item in viewer.tree.get_children():
-        viewer.tree.delete(item)
-    
-    #Checked_items : Stocke les informations des points enregistrés dans le treeview
-    viewer.points_checked_items = {}
-    conn = sqlite3.connect("points.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT name, lat, lon, alt, scale, icon, color, hotspot_x, hotspot_y, label_color FROM points")
-    for row in cursor.fetchall():
-        item_id = viewer.tree.insert("", tk.END, values=("⬜", row[0]))
-        viewer.points_checked_items[item_id] = {"checked": False, "data": row}
-    conn.close()
-    
-    # # Mettre à jour l'affichage sur la carte
-    # viewer.mbtiles_manager.draw_points()
 
 def load_points_line(viewer):
     """Charger tous les points depuis points.db"""
@@ -61,6 +72,133 @@ def load_points_line(viewer):
             viewer.points_listbox.insert(tk.END, point[0])
     except sqlite3.Error:
         pass
+
+def line_add(name, color, width, points_list):
+    """Ajouter une ligne à la base de données"""
+    print("Dans line_add")
+
+    try:
+        conn = sqlite3.connect("lignes.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM lines WHERE name = ?", (name,))
+
+        if cursor.fetchone():   
+            answer=messagebox.askyesno(
+                "Ligne existante",
+                f"Une ligne avec le nom '{name}' existe déja.\n Voulez-vous modifier cette ligne avec les nouvelles valeurs ?",
+            )
+
+            if not answer:
+                return "cancelled"
+            
+            cursor.execute(
+                "UPDATE lines SET color = ?, width = ?, points_list = ? WHERE name = ?",
+                (color, width, points_list, name)
+            )
+                    
+            conn.commit()
+            return "updated"
+
+        print("Insertion de la ligne")
+
+        cursor.execute("INSERT INTO lines (name, color, width, points_list) VALUES (?, ?, ?, ?)",
+                          (name, color, width, points_list))
+        conn.commit()
+        return "created"
+        
+    except sqlite3.Error as e:
+        messagebox.showerror("Erreur", f"Erreur lors de la création de la ligne: {e}")
+        return "error"
+    finally:
+        if "conn" in locals():
+            conn.close()
+
+def create_line_from_database(viewer):
+    """Créer une nouvelle ligne et l'enregistrer dans lignes.db"""
+    name = viewer.line_name_entry.get().strip()
+
+    if not name:
+        messagebox.showerror("Erreur", "Veuillez entrer un nom pour la ligne")
+        return
+    
+    mode = viewer.ligne_creation_mode.get()
+    coordinates_list = []
+    
+    if mode == "points":
+        # Création de la liste des points à partir des noms sélectionnés
+        point_names = [viewer.line_points_listbox.get(i) for i in range(viewer.line_points_listbox.size())]
+        
+        if len(point_names) < 2:
+            messagebox.showerror("Erreur", "Une ligne doit contenir au moins 2 points")
+            return
+        
+        try:
+            # Récupérer les coordonnées des points depuis point.db
+            conn_points = sqlite3.connect("points.db")
+            cursor_points = conn_points.cursor()
+            
+            for point_name in point_names:
+                cursor_points.execute("SELECT lat, lon FROM points WHERE name = ?", (point_name,))
+                result = cursor_points.fetchone()
+                if result:
+                    lat, lon = result
+                    # Stocker les coordonnées au format "lon,lat,0"
+                    coordinates_list.append(f"{lon},{lat},0")
+                else:
+                    messagebox.showerror("Erreur", f"Point '{point_name}' introuvable dans la base de données")
+                    conn_points.close()
+                    return
+            
+            conn_points.close()
+            
+        except Exception as e:
+            messagebox.showerror("Erreur", f"Erreur lors de la récupération des points: {e}")
+            return
+            
+    elif mode == "carte":
+        print("Mode carte non implémenté pour le moment")
+        # # Mode carte : utiliser les points cliqués
+        # if len(viewer.clicked_points) < 2:
+        #     messagebox.showerror("Erreur", "Une ligne doit contenir au moins 2 points. Cliquez sur la carte pour ajouter des points.")
+        #     return
+        
+        # # Convertir les points cliqués au format requis
+        # for lat, lon in viewer.clicked_points:
+        #     coordinates_list.append(f"{lon},{lat},0")
+        return            
+
+    points_str = " ".join(coordinates_list)
+        
+    # Ajouter à la base de données
+    result=line_add(name,                         
+                    viewer.line_color_entry.get(), 
+                    viewer.taille_entry.get(), 
+                    points_str)
+
+    if result == "error" or result == "cancelled":
+        return        
+        
+    # Recharger la liste des lignes dans le treeview
+    load_item_treeview(viewer,"lignes.db",viewer.lines_checked_items,viewer.lines_tree,"lines")
+
+    if result == "updated":
+        messagebox.showinfo("Succès", f"Ligne '{name}' mise à jour avec succès")
+    else:
+        messagebox.showinfo("Succès", f"Ligne '{name}' créée avec succès")
+
+    # Réinitialiser les champs
+    viewer.line_name_entry.delete(0, tk.END)
+    
+    if mode == "points":
+        viewer.line_points_listbox.delete(0, tk.END)        
+        
+    # else:  # mode == "carte"
+    #     viewer.clicked_points = []
+    #     clear_temp_line(viewer)
+               
+    # Redessiner les lignes sur la carte
+    # if hasattr(app, 'mbtiles_manager'):
+        #     app.mbtiles_manager.draw_lines()        
 
 def point_add(name, lat, lon, alt, scale, icon, color, hotspot_x, hotspot_y, label_color):
     """Ajouter un point à la base de données"""
@@ -197,7 +335,10 @@ def create_point_from_deg(viewer):
         return
 
     # Recharger la liste des points
-    load_points_treeview(viewer)
+    #load_points_treeview(viewer)
+    load_item_treeview(viewer,"points.db",viewer.points_checked_items,viewer.tree,"points")
+    
+
     if result == "updated":
         messagebox.showinfo("Succès", f"Point '{name}' mis à jour avec succès")
     else:
@@ -274,7 +415,7 @@ def create_point_from_deg_min(viewer):
         return
 
     # Recharger la liste des points
-    load_points_treeview(viewer)
+    load_item_treeview(viewer,"points.db",viewer.points_checked_items,viewer.tree,"points")
     if result == "updated":
         messagebox.showinfo("Succès", f"Point '{name}' mis à jour avec succès")
     else:
@@ -346,7 +487,7 @@ def create_point_from_deg_min_sec(viewer):
         return
 
     # Recharger la liste des points
-    load_points_treeview(viewer)
+    load_item_treeview(viewer,"points.db",viewer.points_checked_items,viewer.tree,"points")
     if result == "updated":
         messagebox.showinfo("Succès", f"Point '{name}' mis à jour avec succès")
     else:
@@ -398,7 +539,7 @@ def create_point_from_calamar(viewer):
         return
 
     # Recharger la liste des points
-    load_points_treeview(viewer)
+    load_item_treeview(viewer,"points.db",viewer.points_checked_items,viewer.tree,"points")
     if result == "updated":
         messagebox.showinfo("Succès", f"Point '{name}' mis à jour avec succès")
     else:
@@ -476,7 +617,7 @@ def create_point_from_radial(viewer):
         return
 
     # Recharger la liste des points
-    load_points_treeview(viewer)
+    load_item_treeview(viewer,"points.db",viewer.points_checked_items,viewer.tree,"points")
     if result == "updated":
         messagebox.showinfo("Succès", f"Point '{name}' mis à jour avec succès")
     else:
@@ -527,7 +668,7 @@ def create_point_from_click(viewer):
         return
 
     # Recharger la liste des points
-    load_points_treeview(viewer)
+    load_item_treeview(viewer,"points.db",viewer.points_checked_items,viewer.tree,"points")
     if result == "updated":
         messagebox.showinfo("Succès", f"Point '{name}' mis à jour avec succès")
     else:

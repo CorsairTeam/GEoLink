@@ -53,6 +53,67 @@ class ToolTip:
             self.tooltip_window.destroy()
             self.tooltip_window = None
 
+def point_field_fill(viewer, item):
+    """Remplit les champs du point cliqué dans le Tree view.\n
+    Bascule dans la page de création par coordonnées"""
+    
+    data = viewer.points_checked_items[item]["data"]
+    name, lat, lon, alt, scale, icon, color, hotspot_x, hotspot_y, label_color = data
+    viewer.creation_mode.set("coordonnees")
+    viewer.coord_type.set("Degrés")
+    if hasattr(viewer, "coord_combo"):
+        viewer.coord_combo.set("Degrés")
+    update_input_frame_points(viewer)
+
+    if hasattr(viewer, "nom_entry"):
+        viewer.nom_entry.delete(0, tk.END)
+        viewer.nom_entry.insert(0, name)
+
+    if hasattr(viewer, "taille_entry"):
+        viewer.taille_entry.delete(0, tk.END)
+        viewer.taille_entry.insert(0, f"{scale:g}")
+
+    if hasattr(viewer, "point_color_entry"):
+        viewer.point_color_entry.set(color)
+
+    if hasattr(viewer, "type_points_entry"):
+        viewer.type_points_entry.set(icon)
+
+    if hasattr(viewer, "label_color_entry"):
+        viewer.label_color_entry.set(label_color)
+
+    if hasattr(viewer, "lat_entry"):
+        viewer.lat_entry.delete(0, tk.END)
+        viewer.lat_entry.insert(0, f"{lat:g}")
+
+    if hasattr(viewer, "lon_entry"):
+        viewer.lon_entry.delete(0, tk.END)
+        viewer.lon_entry.insert(0, f"{lon:g}")
+
+def on_tree_click(viewer, event, checked_items, treeview):
+    """En fonctiondu clic, coche la case ou remplit les champs de Input_frame"""
+    region = treeview.identify_region(event.x, event.y)
+    if region == "cell":
+        item = treeview.identify_row(event.y)
+        column = treeview.identify_column(event.x)
+        
+        if column == "#1" and item in checked_items:
+            toggle_checkbox(item, checked_items, treeview)
+
+        if column == "#2" and item in checked_items and checked_items is viewer.points_checked_items:
+            point_field_fill(viewer, item)
+
+def toggle_checkbox(item, checked_items, treeview):
+    """Gère le cochage/décochage de la coche du Treeview"""
+    #Structure de  checked_items I00_": {"checked": False,"data": (...)}
+    current_state = checked_items[item]["checked"]
+    new_state = not current_state
+    checked_items[item]["checked"] = new_state
+    
+    values = list(treeview.item(item)["values"])
+    values[0] = "✅" if new_state else "⬜"
+    treeview.item(item, values=values)
+
 def convert_calamar_to_gps(x_val, y_val, x_unit, y_unit):
     """Convertit des coordonnées Calamar en GPS"""
     import numpy as np
@@ -80,6 +141,22 @@ def convert_calamar_to_gps(x_val, y_val, x_unit, y_unit):
     result_lon = lon_params[0] * y_calamar + lon_params[1] * x_calamar + lon_params[2]
     
     return result_lat, result_lon
+
+def deselect_all_treeview(checked_items, treeview):
+    """Décoche toutes les cases du treeview"""
+    for item in checked_items:
+        checked_items[item]["checked"] = False
+        values = list(treeview.item(item)["values"])
+        values[0] = "⬜"
+        treeview.item(item, values=values)
+
+def select_all_treeview(checked_items, treeview):
+    """Coche toutes les cases du treeview"""
+    for item in checked_items:
+        checked_items[item]["checked"] = True
+        values = list(treeview.item(item)["values"])
+        values[0] = "✅"
+        treeview.item(item, values=values)
 
 def create_point_from_bearing_distance(start_point, distance_km, bearing_deg):
     """Créer un point à partir d'un point de départ, distance et gisement (formule Vincenty)"""
