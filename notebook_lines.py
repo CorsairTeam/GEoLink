@@ -5,59 +5,6 @@ import database
 import utility
 
 
-def add_point_to_line(viewer):
-    """Ajouter un point sélectionné à la ligne"""
-    selection = viewer.points_listbox.curselection()
-    if selection:
-        point_name = viewer.points_listbox.get(selection[0])
-        viewer.line_points_listbox.insert(tk.END, point_name)
-
-def remove_point_from_line(viewer):
-    """Retirer un point sélectionné de la ligne"""
-    selection = viewer.line_points_listbox.curselection()
-    if selection:
-        viewer.line_points_listbox.delete(selection[0])
-
-def enable_line_points_drag_reorder(viewer):
-    #Permet de faire du drag dans la liste des points de la ligne avec le clic gauche maintenu
-    def start_drag(event):
-        index = viewer.line_points_listbox.nearest(event.y)
-        if 0 <= index < viewer.line_points_listbox.size():
-            viewer.line_points_drag_index = index
-            viewer.line_points_listbox.selection_clear(0, tk.END)
-            viewer.line_points_listbox.selection_set(index)
-            viewer.line_points_listbox.activate(index)
-
-    def drag_motion(event):
-        if not hasattr(viewer, "line_points_drag_index"):
-            return
-
-        source_index = viewer.line_points_drag_index
-        target_index = viewer.line_points_listbox.nearest(event.y)
-        if target_index < 0:
-            target_index = 0
-        elif target_index >= viewer.line_points_listbox.size():
-            target_index = viewer.line_points_listbox.size() - 1
-
-        if target_index == source_index:
-            return
-
-        point_name = viewer.line_points_listbox.get(source_index)
-        viewer.line_points_listbox.delete(source_index)
-        viewer.line_points_listbox.insert(target_index, point_name)
-        viewer.line_points_listbox.selection_clear(0, tk.END)
-        viewer.line_points_listbox.selection_set(target_index)
-        viewer.line_points_listbox.activate(target_index)
-        viewer.line_points_drag_index = target_index
-
-    def stop_drag(event):
-        if hasattr(viewer, "line_points_drag_index"):
-            del viewer.line_points_drag_index
-
-    viewer.line_points_listbox.bind("<ButtonPress-1>", start_drag)
-    viewer.line_points_listbox.bind("<B1-Motion>", drag_motion)
-    viewer.line_points_listbox.bind("<ButtonRelease-1>", stop_drag)
-
 def update_input_frame_lignes(viewer):
     """Mettre à jour l'interface selon le mode de création sélectionné"""    
 
@@ -89,10 +36,10 @@ def update_input_frame_lignes(viewer):
         viewer.points_listbox = tk.Listbox(left_frame, height=8)
         viewer.points_listbox.pack(fill=tk.BOTH, expand=True, pady=(5, 5), padx=(5, 5))        
         
-        viewer.add_button = tk.Button(viewer.center_frame, text=">>", command=lambda: add_point_to_line(viewer), width=6)
+        viewer.add_button = tk.Button(viewer.center_frame, text=">>", command=lambda: utility.add_point_to_line(viewer,viewer.points_listbox,viewer.line_points_listbox), width=6)
         viewer.add_button.pack(pady=(50, 20))            
         
-        viewer.remove_button = tk.Button(viewer.center_frame, text="<<", command=lambda: remove_point_from_line(viewer), width=6)
+        viewer.remove_button = tk.Button(viewer.center_frame, text="<<", command=lambda: utility.remove_point_from_line(viewer,viewer.line_points_listbox), width=6)
         viewer.remove_button.pack(pady=5)        
         
         viewer.ligne_label = tk.Label(right_frame, text="Ligne", font=("Arial", 10),justify='center')
@@ -102,10 +49,10 @@ def update_input_frame_lignes(viewer):
         utility.ToolTip(viewer.line_points_listbox, "● Possibilité de déplacer la position des points dans la ligne (clic gauche maintenu)")
          
         #Implémente le drag and drop dans la liste des points de la ligne
-        enable_line_points_drag_reorder(viewer)
+        utility.enable_line_points_drag_reorder(viewer,viewer.line_points_listbox)
 
         # Charge la base des points dans la liste pour créer la route  
-        database.load_points_line(viewer)
+        database.load_points_line(viewer,viewer.points_listbox)
 
         # TODO :Réinitialiser les points cliqués
         # viewer.clicked_points = []
@@ -180,10 +127,18 @@ def update_input_frame_lignes(viewer):
     # Réinitialiser les points cliqués
     #TODO: Réinitialiser les points cliqués
 
-def create_treeview_lines(viewer):
-    
-    #Tableau tracage des cases cochées
-    viewer.lines_checked_items = {}
+def create_treeview_lines(viewer):    
+
+     # Titre du tableau de points
+    lignes_title_label = tk.Label(
+        viewer.lines_treeview_frame,
+        text="Liste des lignes",
+        anchor="center",
+        font=("Arial", 10, "bold"),
+    )
+    lignes_title_label.pack(pady=5, fill=tk.X, padx=5)
+    utility.ToolTip(lignes_title_label, "● Clic sur le nom de la ligne pour afficher ses informations dans le formulaire\n"
+                                "\u25CF Clic sur la case à cocher pour selectionner la ligne")
     
     # Création du Treeview lines_tree
     viewer.lines_tree = ttk.Treeview(viewer.lines_treeview_frame, columns=("selected", "nom"), show="headings", height=10)
@@ -222,30 +177,7 @@ def create_treeview_lines(viewer):
     )  # fonction d'attente pour les commandes du menu
     btn_delete.pack(side=tk.LEFT, padx=5)
 
-def setup_lignes_tabs(viewer):
-    # Variable pour récuperer les choix de l'utilisateur ouverture par defaut "points"
-    viewer.ligne_creation_mode = tk.StringVar(value="points")
-
-    # Création de l'onglet Ligne dans "ligne_frame"
-    ligne_frame = ttk.Frame(viewer.notebook)
-    viewer.notebook.add(ligne_frame, text="  Lignes  ")    
-
-    # Frame pour selectionner le mode de création de la ligne
-    viewer.lignes_creation_frame = tk.Frame(ligne_frame, relief="groove", borderwidth=1)
-    viewer.lignes_creation_frame.pack(fill=tk.X, side=tk.TOP, padx=5, pady=5)
-
-    #Frame pour le transfert des points vers la ligne
-    viewer.ligne_points_transfer_frame = tk.Frame(ligne_frame, relief="groove", borderwidth=1)
-    viewer.ligne_points_transfer_frame.pack(fill=tk.X, side=tk.TOP, padx=5, pady=5)
-
-    # Frame pour positionner les champs de saisie
-    viewer.lines_input_frame = tk.Frame(ligne_frame, relief="groove", borderwidth=1)
-    viewer.lines_input_frame.pack(fill=tk.X, side=tk.TOP, padx=5, pady=5)
-
-    # Frame pour le Treeview
-    viewer.lines_treeview_frame = tk.Frame(ligne_frame, relief="groove", borderwidth=1)
-    viewer.lines_treeview_frame.pack(fill=tk.BOTH, expand=True, side=tk.TOP, padx=5, pady=5)
-
+def create_mode_creation_lines(viewer):
     # Remplissage de type_creation_frame    
     ttk.Radiobutton(
         viewer.lignes_creation_frame,
@@ -265,17 +197,36 @@ def setup_lignes_tabs(viewer):
         command=lambda: update_input_frame_lignes(viewer),
     ).grid(row=1, column=0, padx=5, pady=5)
 
-    # Titre du tableau de points
-    lignes_title_label = tk.Label(
-        viewer.lines_treeview_frame,
-        text="Liste des lignes",
-        anchor="center",
-        font=("Arial", 10, "bold"),
-    )
-    lignes_title_label.pack(pady=5, fill=tk.X, padx=5)
-    utility.ToolTip(lignes_title_label, "● Clic sur le nom de la ligne pour afficher ses informations dans le formulaire\n"
-                                "\u25CF Clic sur la case à cocher pour selectionner la ligne")
+def setup_lignes_tabs(viewer):
+    # Variable pour récuperer les choix de l'utilisateur ouverture par defaut "points"
+    viewer.ligne_creation_mode = tk.StringVar(value="points")
+
+    #Tableau tracage des cases cochées
+    viewer.lines_checked_items = {}
+
+    # Création de l'onglet Ligne dans "ligne_frame"
+    ligne_frame = ttk.Frame(viewer.notebook)
+    viewer.notebook.add(ligne_frame, text="  Lignes  ")    
+
+    # Frame pour selectionner le mode de création de la ligne
+    viewer.lignes_creation_frame = tk.Frame(ligne_frame, relief="groove", borderwidth=1)
+    viewer.lignes_creation_frame.pack(fill=tk.X, side=tk.TOP, padx=5, pady=5)
+
+    #Frame pour le transfert des points vers la ligne
+    viewer.ligne_points_transfer_frame = tk.Frame(ligne_frame, relief="groove", borderwidth=1)
+    viewer.ligne_points_transfer_frame.pack(fill=tk.X, side=tk.TOP, padx=5, pady=5)
+
+    # Frame pour positionner les champs de saisie
+    viewer.lines_input_frame = tk.Frame(ligne_frame, relief="groove", borderwidth=1)
+    viewer.lines_input_frame.pack(fill=tk.X, side=tk.TOP, padx=5, pady=5)
+
+    # Frame pour le Treeview
+    viewer.lines_treeview_frame = tk.Frame(ligne_frame, relief="groove", borderwidth=1)
+    viewer.lines_treeview_frame.pack(fill=tk.BOTH, expand=True, side=tk.TOP, padx=5, pady=5)   
         
+    # Création du mode de création de la ligne
+    create_mode_creation_lines(viewer)
+    
     # Création du Treeview
     create_treeview_lines(viewer)
 

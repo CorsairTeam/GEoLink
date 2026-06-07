@@ -58,9 +58,9 @@ def delete_selected_items(viewer,database_name,checked_items,treeview,table_name
         if 'conn' in locals():
             conn.close()
 
-def load_points_line(viewer):
+def load_points_line(viewer,listbox):
     """Charger tous les points depuis points.db"""
-    viewer.points_listbox.delete(0, tk.END)
+    listbox.delete(0, tk.END)
     try:
         conn = sqlite3.connect("points.db")
         cursor = conn.cursor()
@@ -69,7 +69,7 @@ def load_points_line(viewer):
         conn.close()
         
         for point in points:
-            viewer.points_listbox.insert(tk.END, point[0])
+            listbox.insert(tk.END, point[0])
     except sqlite3.Error:
         pass
 
@@ -199,6 +199,299 @@ def create_line_from_database(viewer):
     # Redessiner les lignes sur la carte
     # if hasattr(app, 'mbtiles_manager'):
         #     app.mbtiles_manager.draw_lines()        
+
+def point_coord_polygone(viewer):
+    # Récupérer les noms des points du polygone
+    point_names = [viewer.line_points_listbox_polygon.get(i) for i in range(viewer.line_points_listbox_polygon.size())]
+    if len(point_names) < 3:
+        messagebox.showerror("Erreur", "Un polygone doit contenir au moins 3 points")
+        return
+    
+    coordinates_list =[]
+    conn_points = sqlite3.connect("points.db")
+    cursor_points = conn_points.cursor()
+    
+    for point_name in point_names:
+        cursor_points.execute("SELECT lat, lon FROM points WHERE name = ?", (point_name,))
+        result = cursor_points.fetchone()
+        if result:  
+            lat, lon = result
+            # Stocker les coordonnées au format "lon,lat,0" (z=0 par défaut)
+            coordinates_list.append(f"{lon},{lat},0")
+        else:
+            messagebox.showerror("Erreur", f"Point '{point_name}' introuvable dans la base de données")
+            conn_points.close()
+            return
+    
+    conn_points.close()
+    return coordinates_list
+
+def polygone_add(name, color, width, fill, fill_color, points_list):
+    """Ajouter un polygone à la base de données"""
+
+    print("Dans polygone_add")
+
+    try:
+        conn = sqlite3.connect("polygones.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM polygons WHERE name = ?", (name,))
+
+        if cursor.fetchone():   
+
+            answer=messagebox.askyesno(
+                "Polygone existant",
+                f"Un polygone avec le nom '{name}' existe déja.\n Voulez-vous modifier ce polygone avec les nouvelles valeurs ?",
+            )
+
+            if not answer:
+                return "cancelled"
+
+            cursor.execute(
+                "UPDATE polygons SET color = ?, width = ?, fill = ?, fill_color = ?, points_list = ? WHERE name = ?",
+                (color, width, fill, fill_color, points_list, name),
+            )
+                    
+            conn.commit()
+            return "updated"
+
+        print("Insertion du polygone")
+        cursor.execute("INSERT INTO polygons (name, color, width, fill, fill_color, points_list) VALUES (?, ?, ?, ?, ?, ?)",
+            (name, color, width, fill, fill_color, points_list),)
+        conn.commit()
+        return "created"    
+    
+    except sqlite3.Error as e:
+        messagebox.showerror("Erreur", f"Erreur lors de la création du polygone: {e}")
+        return "error"
+    finally:
+        if "conn" in locals():
+            conn.close()
+
+
+def create_polygone(viewer):    
+        
+    # Récupérer les paramètres du polygone
+    name = viewer.polygone_name_entry.get().strip()
+    color = viewer.line_color_entry.get().strip() 
+    width = viewer.taille_entry.get().strip() 
+    fill_color = viewer.fill_color_entry.get().strip()
+    
+    if not name:
+        messagebox.showerror("Erreur", "Veuillez entrer un nom pour le polygone")
+        return
+    
+    # Variable de remmplissage du polygone
+    fill=bool(viewer.polygone_fill_var.get())
+
+    #Variable du mode de création
+    creation_mode=viewer.polygone_creation_mode.get()    
+
+          
+    #Génération des coordonnes et stockage dans coordinates_list
+    try:
+        if creation_mode == "points":
+            coordinates_list = point_coord_polygone(viewer)    
+            
+        elif creation_mode == "carte":
+            # Mode carte : utiliser les points cliqués
+            if len(viewer.clicked_points_poly) < 3:
+                messagebox.showerror("Erreur", "Un polygone doit contenir au moins 3 points. Cliquez sur la carte pour ajouter des points.")
+                return
+            
+            # Convertir les points cliqués au format requis et fermer automatiquement le polygone
+            for lat, lon in viewer.clicked_points_poly:
+                coordinates_list.append(f"{lon},{lat},0")
+            
+            # Ajouter automatiquement le premier point à la fin pour fermer le polygone
+            if len(viewer.clicked_points_poly) > 0:
+                first_lat, first_lon = viewer.clicked_points_poly[0]
+                coordinates_list.append(f"{first_lon},{first_lat},0")
+            
+        elif creation_mode == "rectangle":
+            # Récupérer les paramètres du rectangle
+            center_name = viewer.rectangle_center_combo.get().strip()
+            if not center_name:
+                messagebox.showerror("Erreur", "Veuillez sélectionner un point centre")
+                return
+                
+            length_str = viewer.rectangle_length_entry.get().strip()
+            width_str = viewer.rectangle_width_entry.get().strip()
+            orientation_str = app.rectangle_orientation_entry.get().strip() or "0"
+            
+            if not length_str or not width_str:
+                messagebox.showerror("Erreur", "Veuillez entrer la longueur et la largeur")
+                return
+            
+            try:
+                length = float(length_str)
+                width = float(width_str)
+                orientation = float(orientation_str)
+            except ValueError:
+                messagebox.showerror("Erreur", "Valeurs numériques invalides")
+                return
+            
+            # Convertir les unités en kilomètres si nécessaire
+            length_unit = app.rectangle_length_unit.get()
+            width_unit = app.rectangle_width_unit.get()
+            
+            if length_unit == "Nm":
+                length = length * 1.852  # Conversion miles nautiques vers km
+            elif length_unit == "m":
+                length = length / 1000  # Conversion mètres vers km
+                
+            if width_unit == "Nm":
+                width = width * 1.852  # Conversion miles nautiques vers km
+            elif width_unit == "m":
+                width = width / 1000  # Conversion mètres vers km
+            
+            # Récupérer les coordonnées du point centre
+            conn_points = sqlite3.connect("point.db")
+            cursor_points = conn_points.cursor()
+            cursor_points.execute("SELECT lat, lon FROM points WHERE name = ?", (center_name,))
+            center_result = cursor_points.fetchone()
+            conn_points.close()
+            
+            if not center_result:
+                messagebox.showerror("Erreur", f"Point centre '{center_name}' introuvable")
+                return
+            
+            center_lat, center_lon = center_result
+            
+            # Calculer les points du rectangle
+            rectangle_points = Utility.calculate_rectangle_points(center_lat, center_lon, length, width, orientation)
+            
+            # Convertir au format attendu pour la base de données
+            for lon, lat in rectangle_points:
+                coordinates_list.append(f"{lon},{lat},0")
+            
+            # Ajouter la flèche d'orientation si demandée
+            add_arrow = app.rectangle_add_arrow_var.get()
+            if add_arrow:
+                arrow_points = Utility.calculate_arrow_points(center_lat, center_lon, length, orientation, width)
+                # Ajouter les points de la flèche après le rectangle
+                for lon, lat in arrow_points:
+                    coordinates_list.append(f"{lon},{lat},0")
+        
+        elif creation_mode == "cercles":
+            # Récupérer les paramètres du cercle
+            center_name = viewer.cercle_center_combo.get().strip()
+            if not center_name:
+                messagebox.showerror("Erreur", "Veuillez sélectionner un point centre")
+                return
+            
+            radius_str = viewer.cercle_rayon_entry.get().strip()
+            segments_str = app.cercle_segments_entry.get().strip() or "32"
+            
+            if not radius_str:
+                messagebox.showerror("Erreur", "Veuillez entrer le rayon")
+                return
+            
+            try:
+                radius = float(radius_str)
+                segments = int(segments_str)
+            except ValueError:
+                messagebox.showerror("Erreur", "Valeurs numériques invalides")
+                return
+            
+            # Convertir les unités en kilomètres si nécessaire
+            radius_unit = app.cercle_rayon_unit.get()
+            if radius_unit == "Nm":
+                radius = radius * 1.852  # Conversion miles nautiques vers km
+            elif radius_unit == "m":
+                radius = radius / 1000  # Conversion mètres vers km
+            
+            # Récupérer les coordonnées du point centre
+            conn_points = sqlite3.connect("point.db")
+            cursor_points = conn_points.cursor()
+            cursor_points.execute("SELECT lat, lon FROM points WHERE name = ?", (center_name,))
+            center_result = cursor_points.fetchone()
+            conn_points.close()
+            
+            if not center_result:
+                messagebox.showerror("Erreur", f"Point centre '{center_name}' introuvable")
+                return
+            
+            center_lat, center_lon = center_result
+            
+            # Vérifier s'il s'agit d'un arc
+            is_arc = app.cercle_arc_var.get()
+            
+            if is_arc:
+                # Récupérer les paramètres de l'arc
+                try:
+                    start_angle = float(app.arc_start_entry.get().strip() or "0")
+                    end_angle = float(app.arc_end_entry.get().strip() or "360")
+                    close_arc = app.arc_relie_var.get()
+                except (ValueError, AttributeError):
+                    messagebox.showerror("Erreur", "Paramètres d'arc invalides")
+                    return
+                
+                # Calculer les points de l'arc
+                circle_points = Utility.calculate_circle_points(
+                    center_lat, center_lon, radius, segments, 
+                    is_arc=True, start_angle_deg=start_angle, 
+                    end_angle_deg=end_angle, close_arc=close_arc
+                )
+            else:
+                # Calculer les points du cercle complet
+                circle_points = Utility.calculate_circle_points(
+                    center_lat, center_lon, radius, segments, is_arc=False
+                )
+            
+            # Convertir au format attendu pour la base de données
+            for lon, lat in circle_points:
+                coordinates_list.append(f"{lon},{lat},0")
+        
+        # Vérifier que nous avons des coordonnées
+        if not coordinates_list:
+            messagebox.showerror("Erreur", "Aucune coordonnée générée")
+            return        
+                
+        #  Création de la chaine de coordonnées
+        points_str = " ".join(coordinates_list)
+
+        # Ajout à la base de données 
+        result=polygone_add(name,                         
+                        color, 
+                        width, 
+                        fill,
+                        fill_color,
+                        points_str)
+
+        if result == "error" or result == "cancelled":
+            return        
+        
+        # Rechargement de la liste des polygones dans le treeview
+        load_item_treeview(viewer,"polygones.db",viewer.polygones_checked_items,viewer.polygones_tree,"polygons")
+
+        if result == "updated":
+            messagebox.showinfo("Succès", f"Polygone '{name}' mis à jour avec succès")
+        else:
+            messagebox.showinfo("Succès", f"Polygone '{name}' créé avec succès")
+             
+        
+        # Réinitialise les champs de saisie
+        viewer.polygone_name_entry.delete(0, tk.END)        
+        
+        if creation_mode == "points":
+            # Vider la listbox des points du polygone
+            viewer.line_points_listbox_polygon.delete(0, tk.END)
+            
+        
+        elif creation_mode == "carte":
+            #Vide la liste des points cliqués et efface le polygone temporaire
+            # viewer.clicked_points_poly = []
+            # clear_temp_polygon(viewer) 
+            pass                           
+                               
+        # Redessiner les polygones sur la carte
+        # if hasattr(viewer, 'mbtiles_manager'):
+        #     viewer.mbtiles_manager.draw_polygones()            
+        
+    except sqlite3.Error as e:
+        messagebox.showerror("Erreur", f"Erreur lors de la création du polygone: {e}")
+    except Exception as e:
+        messagebox.showerror("Erreur", f"Erreur inattendue: {e}")
 
 def point_add(name, lat, lon, alt, scale, icon, color, hotspot_x, hotspot_y, label_color):
     """Ajouter un point à la base de données"""

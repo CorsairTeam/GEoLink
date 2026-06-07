@@ -26,7 +26,7 @@ class MBTilesViewer:
         #load_lines(self)      
                   
         elif tab_text == "Polygones":
-            self.fonction_temporaire()
+            notebook_polygones.update_onglet_polygones(self)
         # Si on quitte l'onglet lignes, nettoyer la ligne temporaire
         #self.clicked_points = []
         #clear_temp_line(self)

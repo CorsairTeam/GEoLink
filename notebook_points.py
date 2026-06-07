@@ -6,8 +6,19 @@ import sqlite3
 import utility
 
 def create_treeview_points(viewer):
+        
+    # Titre du tableau de points
+    points_title_label = tk.Label(
+        viewer.treeview_frame,
+        text="Liste des points",
+        anchor="center",
+        font=("Arial", 10, "bold"),
+    )
+    points_title_label.pack(pady=5, fill=tk.X, padx=5)
+    ToolTip(points_title_label, "● Clic sur le nom du point pour afficher ses informations dans le formulaire\n"
+                                "\u25CF Clic sur la case à cocher pour selectionner le point")
+
     # Création du Treeview
-    
     viewer.tree = ttk.Treeview(viewer.treeview_frame, columns=("selected", "nom"), show="headings", height=10)
     viewer.tree.heading("selected", text="Export")
     viewer.tree.heading("nom", text="Nom")
@@ -15,7 +26,7 @@ def create_treeview_points(viewer):
     viewer.tree.column("selected", width=50, minwidth=50, stretch=False,anchor="center")
     viewer.tree.column("nom", width=100, minwidth=100, stretch=True,anchor="center")
 
-    viewer.points_checked_items = {}
+    
     viewer.tree.bind("<Button-1>", lambda event: utility.on_tree_click(viewer, event, viewer.points_checked_items, viewer.tree))  # Selectionne le point
     viewer.tree.bind("<Double-1>", lambda event: viewer.fonction_temporaire())  # Centre l'affichage sur le point sélectionné
     viewer.tree.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -44,6 +55,47 @@ def create_treeview_points(viewer):
         command=lambda: database.delete_selected_items(viewer,"points.db",viewer.points_checked_items,viewer.tree,"points"),
     )  # fonction d'attente pour les commandes du menu
     btn_delete.pack(side=tk.LEFT, padx=5)
+
+def create_mode_creation_points(viewer):
+    # Remplissage de type_creation_frame
+    viewer.type_creation_frame.grid_columnconfigure(1, weight=1)
+    viewer.rb_coords = ttk.Radiobutton(
+        viewer.type_creation_frame,
+        text="Coordonnées",
+        width=18,
+        variable=viewer.creation_mode,
+        value="coordonnees",
+        command=lambda: update_input_frame_points(viewer),
+    )
+    viewer.rb_coords.grid(row=0, column=0, padx=5, pady=5)
+    viewer.coord_combo = ttk.Combobox(
+        viewer.type_creation_frame,
+        textvariable=viewer.coord_type,
+        values=["Degrés", "Degrés/Minutes", "Degrés/Minutes/Secondes", "Calamar"],
+        state="readonly",
+    )
+    viewer.coord_combo.grid(row=0, column=1, padx=(0, 10), sticky="ew")
+    viewer.coord_combo.bind("<<ComboboxSelected>>", lambda e: update_input_frame_points(viewer))
+
+    rb_radial = ttk.Radiobutton(
+        viewer.type_creation_frame,
+        text="Radial distance",
+        width=18,
+        variable=viewer.creation_mode,
+        value="radial",
+        command=lambda: update_input_frame_points(viewer),
+    )
+    rb_radial.grid(row=1, column=0, padx=5, pady=5)
+
+    rb_click = ttk.Radiobutton(
+        viewer.type_creation_frame,
+        text="Tracé sur la carte",
+        width=18,
+        variable=viewer.creation_mode,
+        value="click",
+        command=lambda: update_input_frame_points(viewer),
+    )
+    rb_click.grid(row=2, column=0, padx=5, pady=5)
 
 def fill_coordinates_degrees_frame(viewer):
     # Latitude
@@ -374,6 +426,9 @@ def setup_points_tabs(viewer):
     viewer.creation_mode = tk.StringVar(value="coordonnees")
     viewer.coord_type = tk.StringVar(value="Degrés")
 
+    #Tableau tracage des cases cochées
+    viewer.points_checked_items = {}
+
     # Configurer le style des onglets
     style = ttk.Style()
     style.configure("TNotebook.Tab", font=("Arial", 10))  # Onglet normal
@@ -395,57 +450,8 @@ def setup_points_tabs(viewer):
     viewer.treeview_frame = tk.Frame(points_frame, relief="groove", borderwidth=1)
     viewer.treeview_frame.pack(fill=tk.BOTH, expand=True, side=tk.TOP, padx=5, pady=5)
 
-    # Remplissage de type_creation_frame
-    viewer.type_creation_frame.grid_columnconfigure(1, weight=1)
-    viewer.rb_coords = ttk.Radiobutton(
-        viewer.type_creation_frame,
-        text="Coordonnées",
-        width=18,
-        variable=viewer.creation_mode,
-        value="coordonnees",
-        command=lambda: update_input_frame_points(viewer),
-    )
-    viewer.rb_coords.grid(row=0, column=0, padx=5, pady=5)
-    viewer.coord_combo = ttk.Combobox(
-        viewer.type_creation_frame,
-        textvariable=viewer.coord_type,
-        values=["Degrés", "Degrés/Minutes", "Degrés/Minutes/Secondes", "Calamar"],
-        state="readonly",
-    )
-    viewer.coord_combo.grid(row=0, column=1, padx=(0, 10), sticky="ew")
-    viewer.coord_combo.bind("<<ComboboxSelected>>", lambda e: update_input_frame_points(viewer))
-
-    rb_radial = ttk.Radiobutton(
-        viewer.type_creation_frame,
-        text="Radial distance",
-        width=18,
-        variable=viewer.creation_mode,
-        value="radial",
-        command=lambda: update_input_frame_points(viewer),
-    )
-    rb_radial.grid(row=1, column=0, padx=5, pady=5)
-
-    rb_click = ttk.Radiobutton(
-        viewer.type_creation_frame,
-        text="Tracé sur la carte",
-        width=18,
-        variable=viewer.creation_mode,
-        value="click",
-        command=lambda: update_input_frame_points(viewer),
-    )
-    rb_click.grid(row=2, column=0, padx=5, pady=5)
-    
-
-    # Titre du tableau de points
-    points_title_label = tk.Label(
-        viewer.treeview_frame,
-        text="Liste des points",
-        anchor="center",
-        font=("Arial", 10, "bold"),
-    )
-    points_title_label.pack(pady=5, fill=tk.X, padx=5)
-    ToolTip(points_title_label, "● Clic sur le nom du point pour afficher ses informations dans le formulaire\n"
-                                "\u25CF Clic sur la case à cocher pour selectionner le point")
+    # Remplissage du cadre de sélection du mode de création
+    create_mode_creation_points(viewer)    
     
     #Création du treeview
     create_treeview_points(viewer)    

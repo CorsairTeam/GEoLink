@@ -1,6 +1,61 @@
 import tkinter as tk
 import math
 
+def add_point_to_line(viewer,listbox_points,listbox_line):
+    """Ajouter un point sélectionné à la ligne"""
+    selection = listbox_points.curselection()
+    if selection:
+        point_name = listbox_points.get(selection[0])
+        listbox_line.insert(tk.END, point_name)
+
+def remove_point_from_line(viewer,listbox_line):
+    """Retirer un point sélectionné de la ligne"""
+    selection = listbox_line.curselection()
+    if selection:
+        listbox_line.delete(selection[0])
+
+def enable_line_points_drag_reorder(viewer,listbox):
+    #Permet de faire du drag dans la liste des points de la ligne avec le clic gauche maintenu
+    #En paramètre le nom de la listbox
+
+    def start_drag(event):
+        index = listbox.nearest(event.y)
+        if 0 <= index < listbox.size():
+            viewer.line_points_drag_index = index
+            listbox.selection_clear(0, tk.END)
+            listbox.selection_set(index)
+            listbox.activate(index)
+
+    def drag_motion(event):
+        if not hasattr(viewer, "line_points_drag_index"):
+            return
+
+        source_index = viewer.line_points_drag_index
+        target_index = listbox.nearest(event.y)
+        if target_index < 0:
+            target_index = 0
+        elif target_index >= listbox.size():
+            target_index = listbox.size() - 1
+
+        if target_index == source_index:
+            return
+
+        point_name = listbox.get(source_index)
+        listbox.delete(source_index)
+        listbox.insert(target_index, point_name)
+        listbox.selection_clear(0, tk.END)
+        listbox.selection_set(target_index)
+        listbox.activate(target_index)
+        viewer.line_points_drag_index = target_index
+
+    def stop_drag(event):
+        if hasattr(viewer, "line_points_drag_index"):
+            del viewer.line_points_drag_index
+
+    listbox.bind("<ButtonPress-1>", start_drag)
+    listbox.bind("<B1-Motion>", drag_motion)
+    listbox.bind("<ButtonRelease-1>", stop_drag)
+
 class ToolTip:
     """Classe pour créer des info-bulles (tooltips) sur les widgets"""
     
