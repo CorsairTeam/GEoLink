@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter import ttk
 import database
+import mbtiles_manager
 import utility
 
 
@@ -64,18 +65,45 @@ def update_input_frame_lignes(viewer):
 
         # Longueur totale de la ligne
         tk.Label(viewer.ligne_points_transfer_frame, text="Longueur totale :", width=25, anchor="w").grid(row=0, column=0, padx=5, pady=5)
-        viewer.line_length_entry = tk.Entry(viewer.ligne_points_transfer_frame, justify="center",state="readonly")
-        viewer.line_length_entry.grid(row=0, column=1, padx=(0, 10), sticky="ew") 
+        line_length_frame = tk.Frame(viewer.ligne_points_transfer_frame)
+        line_length_frame.grid(row=0, column=1, padx=(0, 5), sticky="ew")
+
+        viewer.line_length_entry = tk.Entry(line_length_frame, justify="center", state="readonly", width=12)
+        viewer.line_length_entry.grid(row=0, column=0, padx=(0, 12), sticky="w")
+
+        viewer.line_length_combo = ttk.Combobox(
+            line_length_frame,
+            justify="center",
+            values=["Nm", "m"],
+            width=5,
+            state="readonly",
+        )
+        viewer.line_length_combo.grid(row=0, column=1, padx=(0, 2), sticky="w")
+        viewer.line_length_combo.set("Nm")
 
         # Longueur du dernier segment
         tk.Label(viewer.ligne_points_transfer_frame, text="Longueur du dernier segment :", width=25, anchor="w").grid(row=1, column=0, padx=5, pady=5)
-        viewer.line_last_segment_length_entry = tk.Entry(viewer.ligne_points_transfer_frame, justify="center",state="readonly")
-        viewer.line_last_segment_length_entry.grid(row=1, column=1, padx=(0, 10), sticky="ew")
+        line_last_segment_length_frame = tk.Frame(viewer.ligne_points_transfer_frame)
+        line_last_segment_length_frame.grid(row=1, column=1, padx=(0, 5), sticky="ew")
+
+        viewer.line_last_segment_length_entry = tk.Entry(line_last_segment_length_frame, justify="center", state="readonly", width=12)
+        viewer.line_last_segment_length_entry.grid(row=0, column=0, padx=(0, 12), sticky="w")
+
+        viewer.line_last_segment_length_combo = ttk.Combobox(
+            line_last_segment_length_frame,
+            justify="center",
+            values=["Nm", "m"],
+            width=5,
+            state="readonly",
+        )
+        viewer.line_last_segment_length_combo.grid(row=0, column=1, padx=(0, 2), sticky="w")
+        viewer.line_last_segment_length_combo.set("Nm")
 
         # Gisement du dernier segment
         tk.Label(viewer.ligne_points_transfer_frame, text="Gisement du dernier segment :", width=25, anchor="w").grid(row=2, column=0, padx=5, pady=5)
         viewer.line_last_segment_gisement_entry = tk.Entry(viewer.ligne_points_transfer_frame, justify="center",state="readonly")
-        viewer.line_last_segment_gisement_entry.grid(row=2, column=1, padx=(0, 10), sticky="ew") 
+        viewer.line_last_segment_gisement_entry.grid(row=2, column=1, padx=(0, 5), sticky="ew") 
+       
 
     # Vider le frame avant de reconfigurer
     for widget in viewer.lines_input_frame.winfo_children():
@@ -117,15 +145,17 @@ def update_input_frame_lignes(viewer):
     tk.Button(
         viewer.lines_input_frame,
         text="Créer la ligne",
-        command=lambda: database.create_line_from_database(viewer),
+        command=lambda: database.create_ligne(viewer),
     ).grid(row=3, column=1, columnspan=2, sticky="ew", pady=5, padx=(0, 10))            
         
     
     # Charge les lignes presents dans la base de données et gere l'affichage sur la carte
     database.load_item_treeview(viewer,"lignes.db",viewer.lines_checked_items,viewer.lines_tree,"lines")
     
-    # Réinitialiser les points cliqués
-    #TODO: Réinitialiser les points cliqués
+    # Réinitialiser les points cliqués et la ligne temporaire
+    viewer.clicked_points = []
+    viewer.mbtiles_manager.clear_temp_line()
+
 
 def create_treeview_lines(viewer):    
 
@@ -188,14 +218,17 @@ def create_mode_creation_lines(viewer):
         command=lambda: update_input_frame_lignes(viewer),
     ).grid(row=0, column=0, padx=5, pady=5) 
 
-    ttk.Radiobutton(
+    ligne_carte_radiobutton = ttk.Radiobutton(
         viewer.lignes_creation_frame,
         text="Tracé de la ligne sur la carte",
         width=40,
         variable=viewer.ligne_creation_mode,
         value="carte",
         command=lambda: update_input_frame_lignes(viewer),
-    ).grid(row=1, column=0, padx=5, pady=5)
+    )
+    ligne_carte_radiobutton.grid(row=1, column=0, padx=5, pady=5)    
+    utility.ToolTip(ligne_carte_radiobutton, "● Shift + Clic droit pour générer un point sur la carte.\n"
+                                                "● Shift + Clic gauche pour effacer le dernier point.")
 
 def setup_lignes_tabs(viewer):
     # Variable pour récuperer les choix de l'utilisateur ouverture par defaut "points"

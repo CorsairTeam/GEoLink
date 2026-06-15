@@ -293,7 +293,8 @@ def update_onglet_polygones(viewer):
     fill_input_frame_polygones(viewer)
     
     # Charge les polygones presents dans la base de données et gere l'affichage sur la carte
-    database.load_item_treeview(viewer,"polygones.db",viewer.polygones_checked_items,viewer.polygones_tree,"polygones")
+
+    database.load_item_treeview(viewer,"polygones.db",viewer.polygones_checked_items,viewer.polygones_tree,"polygons")
     
     # Réinitialiser les points cliqués
     #TODO: Réinitialiser les points cliqués
@@ -322,7 +323,7 @@ def create_treeview_polygones(viewer):
     viewer.polygones_tree.column("nom", width=100, minwidth=100, stretch=True,anchor="center")
 
     viewer.polygones_checked_items = {}
-    viewer.polygones_tree.bind("<Button-1>", lambda event: viewer.fonction_temporaire())  # Selectionne le point
+    viewer.polygones_tree.bind("<Button-1>", lambda event: utility.on_tree_click(viewer, event, viewer.polygones_checked_items, viewer.polygones_tree))  # Selectionne le point
     viewer.polygones_tree.bind("<Double-1>", lambda event: viewer.fonction_temporaire())  # Centre l'affichage sur le point sélectionné
     viewer.polygones_tree.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
@@ -347,7 +348,7 @@ def create_treeview_polygones(viewer):
         viewer.polygones_treeview_frame,
         text="Delete",
         width=16,
-        command=lambda: viewer.fonction_temporaire(),
+        command=lambda: database.delete_selected_items(viewer,"polygones.db",viewer.polygones_checked_items,viewer.polygones_tree,"polygons"),
     )  # fonction d'attente pour les commandes du menu
     btn_delete.pack(side=tk.LEFT, padx=5)
 

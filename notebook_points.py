@@ -112,7 +112,7 @@ def fill_coordinates_degrees_frame(viewer):
     tk.Button(
         viewer.input_frame,
         text="Créer le point",
-        command=lambda: database.create_point_from_deg(viewer),
+        command=lambda: database.create_point(viewer),
     ).grid(row=7, column=1, columnspan=2, sticky="ew", pady=5, padx=(0, 10)) 
 
 def fill_coordinates_degrees_minutes_frame(viewer):
@@ -158,7 +158,7 @@ def fill_coordinates_degrees_minutes_frame(viewer):
     tk.Button(
         viewer.input_frame,
         text="Créer le point",
-        command=lambda: database.create_point_from_deg_min(viewer),
+        command=lambda: database.create_point(viewer),
     ).grid(row=7, column=1, columnspan=2, sticky="ew", pady=5, padx=(0, 10)) 
 
 def fill_coordinates_degrees_minutes_seconds_frame(viewer):
@@ -210,7 +210,7 @@ def fill_coordinates_degrees_minutes_seconds_frame(viewer):
     tk.Button(
         viewer.input_frame,
         text="Créer le point",
-        command=lambda: database.create_point_from_deg_min_sec(viewer),
+        command=lambda: database.create_point(viewer),
     ).grid(row=7, column=1, columnspan=2, sticky="ew", pady=5, padx=(0, 10))            
 
 def fill_coordinates_calamar_frame(viewer):
@@ -240,7 +240,7 @@ def fill_coordinates_calamar_frame(viewer):
     tk.Button(
         viewer.input_frame,
         text="Créer le point",
-        command=lambda: database.create_point_from_calamar(viewer),
+        command=lambda: database.create_point(viewer),
     ).grid(row=7, column=1, columnspan=2, sticky="ew", pady=5, padx=(0, 10))
 
 def fill_coordinates_radial_frame(viewer):
@@ -300,7 +300,7 @@ def fill_coordinates_radial_frame(viewer):
         tk.Button(
             viewer.input_frame,
             text="Créer le point",
-            command=lambda: database.create_point_from_radial(viewer),
+            command=lambda: database.create_point(viewer),
         ).grid(row=8, column=1, columnspan=2, sticky="ew", pady=5, padx=5)
             
     else:
@@ -313,20 +313,20 @@ def fill_coordinates_radial_frame(viewer):
 def fill_map_frame(viewer):
     # Latitude
     tk.Label(viewer.input_frame, text="Latitude :", width=18, anchor="w").grid(row=5, column=0, padx=5, pady=5)
-    viewer.click_lat_entry = tk.Entry(viewer.input_frame, state="readonly")
+    viewer.click_lat_entry = tk.Entry(viewer.input_frame, state="readonly",justify='center')
     viewer.click_lat_entry.grid(row=5, column=1, padx=(0, 10), sticky="ew")
     ToolTip(viewer.click_lat_entry, "Clic droit sur la carte pour récupérer les coordonnées du point.")
 
     # Longitude
     tk.Label(viewer.input_frame, text="Longitude :", width=18, anchor="w").grid(row=6, column=0, padx=5, pady=5)
-    viewer.click_lon_entry = tk.Entry(viewer.input_frame, state="readonly")
+    viewer.click_lon_entry = tk.Entry(viewer.input_frame, state="readonly",justify='center')
     viewer.click_lon_entry.grid(row=6, column=1, padx=(0, 10), sticky="ew")        
         
     # Bouton créer
     tk.Button(
         viewer.input_frame,
         text="Créer le point",
-        command=lambda: database.create_point_from_click(viewer),
+        command=lambda: database.create_point(viewer),
     ).grid(row=7, column=1, columnspan=2, sticky="ew", pady=5, padx=(0, 10))
 
 def update_input_frame_points(viewer):

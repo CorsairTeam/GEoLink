@@ -1,6 +1,6 @@
 import os
 import tkinter as tk
-from tkinter import Menu, ttk, filedialog
+from tkinter import Menu, ttk
 from mbtiles_manager import MbtilesManager
 import database
 import notebook_points
@@ -36,11 +36,8 @@ class MBTilesViewer:
             #self.clicked_points = []
             #clear_temp_line(self)  
             pass          
-        
-    def __init__(self, root, map_path_init):        
-
-        #Variable : Chemin de la carte MBTiles initiale
-        self.map_path_init = map_path_init
+    
+    def __init__(self, root):        
 
         #Variable : Position et altitude du hotspot
         self.hotspot_x = tk.DoubleVar(value=0.5)
@@ -60,6 +57,23 @@ class MBTilesViewer:
         y = (screen_height - height) // 2
         self.root.geometry(f"{width}x{height}+{x}+{y}")
 
+        # Variables de gestion de la carte
+        self.db_path = None
+        self.zoom = 12
+        self.offset_x = 0
+        self.offset_y = 0
+        
+        # Cache des tuiles contenant les images déjà chargées
+        self.tile_cache = {}
+        self.min_col = 0
+        self.max_col = 0
+        self.min_row = 0
+        self.max_row = 0 
+
+        #Variables pour la création de lignes par clic
+        self.clicked_points = []  # Points cliqués sur la carte
+        self.temp_line_id = None  # ID de la ligne temporaire affichée
+
         # Instancie la classe MbtilesManager et lui passe une référence à l'instance principale
         self.mbtiles_manager = MbtilesManager(self)
 
@@ -70,8 +84,15 @@ class MBTilesViewer:
         if not all(os.path.exists(db_file) for db_file in ["points.db", "lignes.db", "polygones.db"]):
             database.create_database()
 
-        # Création de l'interface utilisateur
+        # Création de l'interface utilisateur et affichage de la carte
         self.setup_ui()
+
+        # Calcule la taille dela carte pour afficher les objets
+        self.root.update_idletasks()
+
+        self.mbtiles_manager.bind_canvas_events()
+        map_path = r"Cartes\Cazaux sud ouest avec gabarit-WGS84-EPSG3857.mbtiles"
+        self.mbtiles_manager.import_carte(map_path)
 
         # Gestion des événements
         self.notebook.bind("<<NotebookTabChanged>>",lambda event: self.on_tab_changed(event))        
@@ -106,7 +127,6 @@ class MBTilesViewer:
         # Création de l'onglet polygones du notebook
         notebook_polygones.setup_polygones_tabs(self)       
         
-
     def setup_menu(self):
         """Gestion des options du menu"""
         
@@ -117,32 +137,21 @@ class MBTilesViewer:
         cartes_menu = Menu(self.menu_bar, tearoff=0)
         cartes_menu.add_command(label="Charger Carte MBTiles", command=lambda: viewer.fonction_temporaire())
         cartes_menu.add_command(label="Fermer Carte", command=lambda: viewer.fonction_temporaire())
-        self.menu_bar.add_cascade(label="Cartes", menu=cartes_menu)
+        self.menu_bar.add_cascade(label="Cartes", menu=cartes_menu)        
 
-        # Menu : "Couches"
-        couches_menu = Menu(self.menu_bar, tearoff=0)
-        gestion_kml_menu = Menu(couches_menu, tearoff=0)
-        gestion_kml_menu.add_command(label="Importer fichier .kml", command=lambda: viewer.fonction_temporaire())
-        gestion_kml_menu.add_command(label="Exporter objets selectionnés ", command=lambda: viewer.fonction_temporaire())
-        gestion_kml_menu.add_command(label="Export all ", command=lambda: viewer.fonction_temporaire())
-        couches_menu.add_cascade(label="Fichiers KML", menu=gestion_kml_menu)
-        
-        gestion_csv_menu = Menu(couches_menu, tearoff=0)
-        gestion_csv_menu.add_command(label="Importer fichier .csv", command=lambda: viewer.fonction_temporaire())
-        gestion_csv_menu.add_command(label="Exporter points selectionnés ", command=lambda: viewer.fonction_temporaire())
-        gestion_csv_menu.add_command(label="Export all ", command=lambda: viewer.fonction_temporaire())
-        couches_menu.add_cascade(label="Fichiers CSV", menu=gestion_csv_menu)
+        # Menu : "Importer"        
+        importer_menu = Menu(self.menu_bar, tearoff=0)
+        importer_menu.add_command(label="Importer fichier .kml", command=lambda: viewer.fonction_temporaire())
+        importer_menu.add_command(label="Importer fichier .csv", command=lambda: viewer.fonction_temporaire())        
+        importer_menu.add_command(label="Importer fichier .geojson", command=lambda: viewer.fonction_temporaire())
+        self.menu_bar.add_cascade(label="Importer", menu=importer_menu)
 
-        gestion_mbtiles_menu = Menu(couches_menu, tearoff=0)
-        gestion_mbtiles_menu.add_command(label="Exporter objets selectionnés ", command=lambda: viewer.fonction_temporaire())
-        gestion_mbtiles_menu.add_command(label="Export all ", command=lambda: viewer.fonction_temporaire())
-        couches_menu.add_cascade(label="Fichiers MBTiles", menu=gestion_mbtiles_menu)
-        
-        gestion_geojson_menu = Menu(couches_menu, tearoff=0)
-        gestion_geojson_menu.add_command(label="Exporter objets selectionnés ", command=lambda: viewer.fonction_temporaire())
-        gestion_geojson_menu.add_command(label="Export all ", command=lambda: viewer.fonction_temporaire())
-        couches_menu.add_cascade(label="Fichiers GeoJSON", menu=gestion_geojson_menu)
-        self.menu_bar.add_cascade(label="Couches", menu=couches_menu)
+
+        # Menu : "Exporter"        
+        exporter_menu = Menu(self.menu_bar, tearoff=0)
+        exporter_menu.add_command(label="Exporter tous les objets", command=lambda: viewer.fonction_temporaire())
+        exporter_menu.add_command(label="Exporter objets selectionnés", command=lambda: viewer.fonction_temporaire())        
+        self.menu_bar.add_cascade(label="Exporter", menu=exporter_menu)
 
         # Menu : "Aide"
         aide_menu = Menu(self.menu_bar, tearoff=0)
@@ -154,25 +163,9 @@ class MBTilesViewer:
         # Ajoute le menu dans la fenêtre principale
         self.root.config(menu=self.menu_bar)
   
-def choisir_carte():
-    root = tk.Tk()
-    root.withdraw()  # cache la fenêtre principale
-    map_path = filedialog.askopenfilename(
-        title="Choisir une carte MBTiles",
-        filetypes=[("MBTiles", "*.mbtiles"), ("Tous les fichiers", "*.*")],
-    )
-    root.destroy()
-    return map_path
-
 def main():
-    # Selection de la carte MBTiles à charger
-    map_path_init = "Retirer le commentaire"  # choisir_carte()
-    if not map_path_init:
-        print("Aucune carte sélectionnée, arrêt du programme.")
-        return
-
     root = tk.Tk()
-    app = MBTilesViewer(root, map_path_init)
+    app = MBTilesViewer(root)
     root.mainloop()
 
 if __name__ == "__main__":

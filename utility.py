@@ -1,5 +1,170 @@
 import tkinter as tk
 import math
+import sqlite3
+
+
+def calculate_arrow_points(center_lat, center_lon, length_km, bearing_deg, width_km=None):
+    """Calcul d'une flèche d'orientation simple pour indiquer la direction d'un rectangle
+    Basé sur l'implémentation Streamlit : ligne simple du milieu du côté avant vers l'extérieur
+    
+    Args:
+        center_lat, center_lon: Coordonnées du centre du rectangle
+        length_km: Longueur du rectangle en km
+        bearing_deg: Orientation du rectangle en degrés (0° = Nord)
+        width_km: Largeur du rectangle en km (pour calculer la longueur de la flèche)
+    
+    Returns:
+        Liste des points (lon, lat) formant la flèche (polygone fermé à 3 points)
+    """
+    # Rayon de la Terre en km
+    R = 6371.0
+    
+    # Convertir en radians
+    bearing_rad = math.radians(bearing_deg)
+    lat_rad = math.radians(center_lat)
+    lon_rad = math.radians(center_lon)
+    
+    # Point de départ : milieu du côté avant du rectangle (orienté vers le cap)
+    front_offset_km = length_km / 2
+    arrow_start_lat_rad = math.asin(math.sin(lat_rad) * math.cos(front_offset_km / R) +
+                                   math.cos(lat_rad) * math.sin(front_offset_km / R) * math.cos(bearing_rad))
+    
+    arrow_start_lon_rad = lon_rad + math.atan2(math.sin(bearing_rad) * math.sin(front_offset_km / R) * math.cos(lat_rad),
+                                              math.cos(front_offset_km / R) - math.sin(lat_rad) * math.sin(arrow_start_lat_rad))
+    
+    arrow_start_lat = math.degrees(arrow_start_lat_rad)
+    arrow_start_lon = math.degrees(arrow_start_lon_rad)
+    
+    # Point de fin de la flèche (longueur = moitié de la largeur du rectangle)
+    arrow_length_km = (width_km / 2) if width_km else (length_km / 4)  # Fallback si width_km non fourni
+    arrow_end_lat_rad = math.asin(math.sin(math.radians(arrow_start_lat)) * math.cos(arrow_length_km / R) +
+                                 math.cos(math.radians(arrow_start_lat)) * math.sin(arrow_length_km / R) * math.cos(bearing_rad))
+    
+    arrow_end_lon_rad = math.radians(arrow_start_lon) + math.atan2(math.sin(bearing_rad) * math.sin(arrow_length_km / R) * math.cos(math.radians(arrow_start_lat)),
+                                                                  math.cos(arrow_length_km / R) - math.sin(math.radians(arrow_start_lat)) * math.sin(arrow_end_lat_rad))
+    
+    arrow_end_lat = math.degrees(arrow_end_lat_rad)
+    arrow_end_lon = math.degrees(arrow_end_lon_rad)
+    
+    # Retourner les trois points de la flèche pour former un polygone fermé
+    # Point de départ → Pointe de la flèche → Retour au point de départ
+    return [
+        (arrow_start_lon, arrow_start_lat),  # Point de départ (milieu côté avant)
+        (arrow_end_lon, arrow_end_lat),      # Pointe de la flèche
+        (arrow_start_lon, arrow_start_lat)   # Retour au point de départ (fermeture)
+    ]
+
+def calculate_rectangle_points(center_lat, center_lon, length_km, width_km, bearing_deg):
+    """Calcul de rectangles avec précision Vincenty"""
+    center_point = {"lat": center_lat, "lon": center_lon}
+    half_length_km = length_km / 2
+    half_width_km = width_km / 2
+    
+    corners_local = [
+        (half_length_km, half_width_km),
+        (half_length_km, -half_width_km),
+        (-half_length_km, -half_width_km),
+        (-half_length_km, half_width_km)
+    ]
+    
+    rectangle_points = []
+
+    for x_local, y_local in corners_local:
+        dist_to_corner = math.sqrt(x_local**2 + y_local**2)
+        angle_relative = math.degrees(math.atan2(y_local, x_local))
+        absolute_bearing = (bearing_deg + angle_relative) % 360
+        
+        new_lat, new_lon = create_point_from_bearing_distance(center_point, dist_to_corner, absolute_bearing)
+        rectangle_points.append((new_lon, new_lat))
+    
+    rectangle_points.append(rectangle_points[0])  # Fermer le rectangle
+    return rectangle_points
+
+def calculate_circle_points(center_lat, center_lon, radius_km, num_segments, is_arc=False, start_angle_deg=0, end_angle_deg=360, close_arc=True):
+    """Calcul de cercles ou arcs avec précision Vincenty"""
+    points = []
+    center_point = {"lat": center_lat, "lon": center_lon}
+
+    if is_arc:
+        if end_angle_deg < start_angle_deg:
+            end_angle_deg += 360
+        
+        # Pour les arcs fermés, ajouter le centre au début
+        if close_arc:
+            points.append((center_lon, center_lat))
+        
+        angle_range = end_angle_deg - start_angle_deg
+        effective_num_segments = max(num_segments, int(abs(angle_range)))
+        
+        # Générer les points de l'arc
+        for i in range(effective_num_segments + 1):
+            angle_deg = start_angle_deg + (angle_range / effective_num_segments) * i
+            if angle_deg > 360:
+                angle_deg -= 360
+            
+            new_lat, new_lon = create_point_from_bearing_distance(center_point, radius_km, angle_deg)
+            points.append((new_lon, new_lat))
+        
+        # Pour les arcs fermés, fermer vers le centre
+        if close_arc:
+            points.append((center_lon, center_lat))
+    else:
+        # Cercle complet
+        for i in range(num_segments + 1):
+            angle_deg = (360 / num_segments) * i
+            new_lat, new_lon = create_point_from_bearing_distance(center_point, radius_km, angle_deg)
+            points.append((new_lon, new_lat))
+    return points
+
+def pixel_to_latlon(x, y, offset_x, offset_y, min_col, max_row, zoom):
+    """Convertir coordonnées pixel en lat/lon exprimés en degrés décimaux"""
+    # Position dans l'image
+    image_x = x - offset_x
+    image_y = y - offset_y
+    
+    # Coordonnées de tuile integrant la position du point dans la tuile dans les décimales
+    tile_x = image_x / 256 + min_col
+    tile_y = max_row - image_y / 256
+    
+    # Conversion en lat/lon (correction TMS)
+    n = 2 ** zoom
+    lon = tile_x / n * 360.0 - 180.0    
+
+    # Inverser tile_y pour TMS (Y=0 au pole sud)
+    tile_y_corrected = n - 1 - tile_y
+    lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * tile_y_corrected / n)))
+    lat = math.degrees(lat_rad)
+    
+    return lat, lon
+
+def update_coordinates(x, y, offset_x, offset_y, min_col, max_row, zoom):
+    """Récupère les coordonnées du pointeur de la souris en degrés"""
+    return pixel_to_latlon(x, y, offset_x, offset_y, min_col, max_row, zoom)
+
+def latlon_to_pixel(lat, lon, offset_x, offset_y, min_col, max_row, zoom):
+    """Convertir lat/lon en coordonnées pixel dans le canvas"""
+    n = 2 ** zoom
+    
+    # Conversion lon en tile_x
+    tile_x = (lon + 180.0) / 360.0 * n
+    
+    # Conversion lat en tile_y (correction TMS)
+    lat_rad = math.radians(lat)
+    tile_y_corrected = (1 - math.asinh(math.tan(lat_rad)) / math.pi) / 2 * n
+    tile_y = n - 1 - tile_y_corrected
+    
+    # Position dans l'image
+    image_x = (tile_x - min_col) * 256
+    image_y = (max_row - tile_y) * 256
+    
+    # Coordonnées pixel dans le canvas
+    x = image_x + offset_x
+    y = image_y + offset_y
+    
+    return x, y
+
+
+
 
 def add_point_to_line(viewer,listbox_points,listbox_line):
     """Ajouter un point sélectionné à la ligne"""
@@ -112,13 +277,17 @@ def point_field_fill(viewer, item):
     """Remplit les champs du point cliqué dans le Tree view.\n
     Bascule dans la page de création par coordonnées"""
     
+    import notebook_points
+
     data = viewer.points_checked_items[item]["data"]
     name, lat, lon, alt, scale, icon, color, hotspot_x, hotspot_y, label_color = data
     viewer.creation_mode.set("coordonnees")
     viewer.coord_type.set("Degrés")
+    
+    #Affiche la page degrés
     if hasattr(viewer, "coord_combo"):
         viewer.coord_combo.set("Degrés")
-    update_input_frame_points(viewer)
+    notebook_points.update_input_frame_points(viewer)
 
     if hasattr(viewer, "nom_entry"):
         viewer.nom_entry.delete(0, tk.END)
@@ -145,6 +314,47 @@ def point_field_fill(viewer, item):
         viewer.lon_entry.delete(0, tk.END)
         viewer.lon_entry.insert(0, f"{lon:g}")
 
+def polygon_field_fill(viewer, item):
+    """Remplit les champs du polygone cliqué dans le Tree view."""
+
+    data = viewer.polygones_checked_items[item]["data"]
+    name = data[0]
+
+    try:
+        conn = sqlite3.connect("polygones.db")
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT name, color, width, fill, fill_color FROM polygons WHERE name = ?",
+            (name,),
+        )
+        result = cursor.fetchone()
+    except sqlite3.Error:
+        return
+    finally:
+        if "conn" in locals():
+            conn.close()
+
+    if not result:
+        return
+
+    name, color, width, fill, fill_color = result
+
+    if hasattr(viewer, "polygone_name_entry"):
+        viewer.polygone_name_entry.delete(0, tk.END)
+        viewer.polygone_name_entry.insert(0, name)
+
+    if hasattr(viewer, "taille_entry"):
+        viewer.taille_entry.set(str(width))
+
+    if hasattr(viewer, "line_color_entry"):
+        viewer.line_color_entry.set(color)
+
+    if hasattr(viewer, "fill_color_entry"):
+        viewer.fill_color_entry.set(fill_color)
+
+    if hasattr(viewer, "polygone_fill_var"):
+        viewer.polygone_fill_var.set(1 if fill in (1, True, "1", "True", "true") else 0)
+
 def on_tree_click(viewer, event, checked_items, treeview):
     """En fonctiondu clic, coche la case ou remplit les champs de Input_frame"""
     region = treeview.identify_region(event.x, event.y)
@@ -157,6 +367,9 @@ def on_tree_click(viewer, event, checked_items, treeview):
 
         if column == "#2" and item in checked_items and checked_items is viewer.points_checked_items:
             point_field_fill(viewer, item)
+
+        if column == "#2" and item in checked_items and checked_items is viewer.polygones_checked_items:
+            polygon_field_fill(viewer, item)
 
 def toggle_checkbox(item, checked_items, treeview):
     """Gère le cochage/décochage de la coche du Treeview"""
@@ -213,46 +426,94 @@ def select_all_treeview(checked_items, treeview):
         values[0] = "✅"
         treeview.item(item, values=values)
 
-def create_point_from_bearing_distance(start_point, distance_km, bearing_deg):
-    """Créer un point à partir d'un point de départ, distance et gisement (formule Vincenty)"""
-    # Constantes WGS84
-    WGS84_A = 6378137.0
-    WGS84_F = 1/298.257223563
-    WGS84_B = WGS84_A * (1 - WGS84_F)
+
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    """Distance Vincenty inverse - précision sub-métrique"""
+    if lat1 == lat2 and lon1 == lon2:
+        return 0.0
     
-    lat1_rad = math.radians(start_point["lat"])
-    lon1_rad = math.radians(start_point["lon"])
-    alpha1_rad = math.radians(bearing_deg)
-    s = distance_km * 1000  # Convertir en mètres
+    lat1_rad, lon1_rad = math.radians(lat1), math.radians(lon1)
+    lat2_rad, lon2_rad = math.radians(lat2), math.radians(lon2)
     
-    sin_alpha1, cos_alpha1 = math.sin(alpha1_rad), math.cos(alpha1_rad)
-    tan_U1 = (1 - WGS84_F) * math.tan(lat1_rad)
-    cos_U1 = 1 / math.sqrt(1 + tan_U1 ** 2)
-    sin_U1 = tan_U1 * cos_U1
+    L = lon2_rad - lon1_rad
+    U1 = math.atan((1 - WGS84_F) * math.tan(lat1_rad))
+    U2 = math.atan((1 - WGS84_F) * math.tan(lat2_rad))
     
-    sigma1 = math.atan2(tan_U1, cos_alpha1)
-    sin_alpha = cos_U1 * sin_alpha1
-    cos2_alpha = 1 - sin_alpha ** 2
+    sin_U1, cos_U1 = math.sin(U1), math.cos(U1)
+    sin_U2, cos_U2 = math.sin(U2), math.cos(U2)
+    
+    lambda_val = L
+    for _ in range(100):
+        sin_lambda, cos_lambda = math.sin(lambda_val), math.cos(lambda_val)
+        sin_sigma = math.sqrt((cos_U2 * sin_lambda) ** 2 + (cos_U1 * sin_U2 - sin_U1 * cos_U2 * cos_lambda) ** 2)
+        
+        if sin_sigma == 0:
+            return 0.0
+        
+        cos_sigma = sin_U1 * sin_U2 + cos_U1 * cos_U2 * cos_lambda
+        sigma = math.atan2(sin_sigma, cos_sigma)
+        sin_alpha = cos_U1 * cos_U2 * sin_lambda / sin_sigma
+        cos2_alpha = 1 - sin_alpha ** 2
+        
+        if cos2_alpha == 0:
+            cos_2sigma_m = 0
+        else:
+            cos_2sigma_m = cos_sigma - 2 * sin_U1 * sin_U2 / cos2_alpha
+        
+        C = WGS84_F / 16 * cos2_alpha * (4 + WGS84_F * (4 - 3 * cos2_alpha))
+        lambda_prev = lambda_val
+        lambda_val = L + (1 - C) * WGS84_F * sin_alpha * (sigma + C * sin_sigma * (cos_2sigma_m + C * cos_sigma * (-1 + 2 * cos_2sigma_m ** 2)))
+        
+        if abs(lambda_val - lambda_prev) < 1e-12:
+            break
+    
     u2 = cos2_alpha * (WGS84_A ** 2 - WGS84_B ** 2) / (WGS84_B ** 2)
     A = 1 + u2 / 16384 * (4096 + u2 * (-768 + u2 * (320 - 175 * u2)))
     B = u2 / 1024 * (256 + u2 * (-128 + u2 * (74 - 47 * u2)))
+    delta_sigma = B * sin_sigma * (cos_2sigma_m + B / 4 * (cos_sigma * (-1 + 2 * cos_2sigma_m ** 2) - B / 6 * cos_2sigma_m * (-3 + 4 * sin_sigma ** 2) * (-3 + 4 * cos_2sigma_m ** 2)))
     
-    sigma = s / (WGS84_B * A)
+    return WGS84_B * A * (sigma - delta_sigma)
+
+def calculate_bearing(lat1, lon1, lat2, lon2):
+    """Gisement initial Vincenty - précision sub-métrique"""
+    if lat1 == lat2 and lon1 == lon2:
+        return 0.0
+    
+    lat1_rad, lon1_rad = math.radians(lat1), math.radians(lon1)
+    lat2_rad, lon2_rad = math.radians(lat2), math.radians(lon2)
+    
+    L = lon2_rad - lon1_rad
+    U1 = math.atan((1 - WGS84_F) * math.tan(lat1_rad))
+    U2 = math.atan((1 - WGS84_F) * math.tan(lat2_rad))
+    
+    sin_U1, cos_U1 = math.sin(U1), math.cos(U1)
+    sin_U2, cos_U2 = math.sin(U2), math.cos(U2)
+    
+    lambda_val = L
     for _ in range(100):
-        cos_2sigma_m = math.cos(2 * sigma1 + sigma)
-        sin_sigma, cos_sigma = math.sin(sigma), math.cos(sigma)
-        delta_sigma = B * sin_sigma * (cos_2sigma_m + B / 4 * (cos_sigma * (-1 + 2 * cos_2sigma_m ** 2) - B / 6 * cos_2sigma_m * (-3 + 4 * sin_sigma ** 2) * (-3 + 4 * cos_2sigma_m ** 2)))
-        sigma_prev = sigma
-        sigma = s / (WGS84_B * A) + delta_sigma
+        sin_lambda, cos_lambda = math.sin(lambda_val), math.cos(lambda_val)
+        sin_sigma = math.sqrt((cos_U2 * sin_lambda) ** 2 + (cos_U1 * sin_U2 - sin_U1 * cos_U2 * cos_lambda) ** 2)
         
-        if abs(sigma - sigma_prev) < 1e-12:
+        if sin_sigma == 0:
+            return 0.0
+        
+        cos_sigma = sin_U1 * sin_U2 + cos_U1 * cos_U2 * cos_lambda
+        sigma = math.atan2(sin_sigma, cos_sigma)
+        sin_alpha = cos_U1 * cos_U2 * sin_lambda / sin_sigma
+        cos2_alpha = 1 - sin_alpha ** 2
+        
+        if cos2_alpha == 0:
+            cos_2sigma_m = 0
+        else:
+            cos_2sigma_m = cos_sigma - 2 * sin_U1 * sin_U2 / cos2_alpha
+        
+        C = WGS84_F / 16 * cos2_alpha * (4 + WGS84_F * (4 - 3 * cos2_alpha))
+        lambda_prev = lambda_val
+        lambda_val = L + (1 - C) * WGS84_F * sin_alpha * (sigma + C * sin_sigma * (cos_2sigma_m + C * cos_sigma * (-1 + 2 * cos_2sigma_m ** 2)))
+        
+        if abs(lambda_val - lambda_prev) < 1e-12:
             break
     
-    tmp = sin_U1 * sin_sigma - cos_U1 * cos_sigma * cos_alpha1
-    lat2_rad = math.atan2(sin_U1 * cos_sigma + cos_U1 * sin_sigma * cos_alpha1, (1 - WGS84_F) * math.sqrt(sin_alpha ** 2 + tmp ** 2))
-    lambda_val = math.atan2(sin_sigma * sin_alpha1, cos_U1 * cos_sigma - sin_U1 * sin_sigma * cos_alpha1)
-    C = WGS84_F / 16 * cos2_alpha * (4 + WGS84_F * (4 - 3 * cos2_alpha))
-    L = lambda_val - (1 - C) * WGS84_F * sin_alpha * (sigma + C * sin_sigma * (cos_2sigma_m + C * cos_sigma * (-1 + 2 * cos_2sigma_m ** 2)))
-    lon2_rad = (lon1_rad + L + 3 * math.pi) % (2 * math.pi) - math.pi
-    
-    return math.degrees(lat2_rad), math.degrees(lon2_rad)
+    alpha1 = math.atan2(cos_U2 * sin_lambda, cos_U1 * sin_U2 - sin_U1 * cos_U2 * cos_lambda)
+    return (math.degrees(alpha1) + 360) % 360
