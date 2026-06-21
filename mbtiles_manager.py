@@ -8,7 +8,7 @@ import utility
 
 class MbtilesManager:    
     
-    def handle_line_creation_click(self, event):
+    def add_clicked_point(self, event):
         """Gérer les clics pour la création de lignes"""
         # Convertir les coordonnées pixel en lat/lon
         if not hasattr(self.viewer, 'min_col') or not hasattr(self.viewer, 'max_row'):
@@ -20,13 +20,8 @@ class MbtilesManager:
                                           self.viewer.zoom)
         
         if lat is not None and lon is not None:
-           self.add_clicked_point(lat, lon)
-
-    def add_clicked_point(self, lat, lon):
-        """Ajouter un point cliqué à la ligne en cours de création"""
-        self.viewer.clicked_points.append((lat, lon))
-        self.draw_temp_line()
-        print(f"Point {len(self.viewer.clicked_points)} ajouté: {lat:.6f}, {lon:.6f}")
+           self.viewer.clicked_points.append((lat, lon))
+           self.draw_temp_line()
 
     def remove_last_clicked_point(self):
         """Supprimer le dernier point cliqué"""
@@ -92,18 +87,65 @@ class MbtilesManager:
 
                 self.viewer.line_length_entry.config(state="normal")
                 self.viewer.line_length_entry.delete(0, tk.END)
-                self.viewer.line_length_entry.insert(0, f"{distance_nm:.1f}")
+
+                #Longueur totale de la ligne en mètres ou en Nm
+                if self.viewer.line_length_combo.get() == "m":
+                    self.viewer.line_length_entry.insert(0, f"{total_m:.0f}")
+                else:
+                    self.viewer.line_length_entry.insert(0, f"{distance_nm:.1f}")
+                
                 self.viewer.line_length_entry.config(state="readonly")
 
-                self.viewer.line_last_segment_length_entry.config(state="normal")
-                self.viewer.line_last_segment_length_entry.delete(0, tk.END)
-                self.viewer.line_last_segment_length_entry.insert(0, f"{last_seg_nm:.1f}")
-                self.viewer.line_last_segment_length_entry.config(state="readonly")
+                if last_seg_nm is not None:
+                    self.viewer.line_last_segment_length_entry.config(state="normal")
+                    self.viewer.line_last_segment_length_entry.delete(0, tk.END)
+
+                     #Longueur du dernier segment de la ligne en mètres ou en Nm
+                    if self.viewer.line_last_segment_length_combo.get() == "m":
+                        self.viewer.line_last_segment_length_entry.insert(0, f"{last_seg_m:.0f}")
+                    else:
+                        self.viewer.line_last_segment_length_entry.insert(0, f"{last_seg_nm:.1f}")
+
+
+                    
+                    self.viewer.line_last_segment_length_entry.config(state="readonly")
 
                 self.viewer.line_last_segment_gisement_entry.config(state="normal")
                 self.viewer.line_last_segment_gisement_entry.delete(0, tk.END)
                 self.viewer.line_last_segment_gisement_entry.insert(0, f"{last_bearing:.0f}°")
                 self.viewer.line_last_segment_gisement_entry.config(state="readonly")
+                
+            except Exception:
+                pass
+        
+        # Si au moins 3 points et création carte dans l'onglet polygone, dessiner la ligne de fermeture en pointillés
+        selected_tab = self.viewer.notebook.select()
+        tab_text = self.viewer.notebook.tab(selected_tab, "text").strip()
+        if len(self.viewer.clicked_points) >= 3 and self.viewer.polygone_creation_mode.get()=="carte" and tab_text == "Polygones":
+            first_point = pixel_points[:2]  # Premier point (px, py)
+            last_point = pixel_points[-2:]  # Dernier point (px, py)
+            # Ligne de fermeture en pointillés
+            self.viewer.canvas.create_line(last_point[0], last_point[1], first_point[0], first_point[1], 
+                                          fill="darkblue", width=2, dash=(5, 5), tags="temp_line")
+
+            # Mettre à jour les champs de longueur et gisement du dernier segment
+            try:
+                                
+                self.viewer.polygone_last_segment_length_entry.config(state="normal")
+                self.viewer.polygone_last_segment_length_entry.delete(0, tk.END)
+
+                #Longueur du dernier segment du polygone en mètres ou en Nm
+                if self.viewer.polygone_last_segment_length_combo.get() == "m":
+                    self.viewer.polygone_last_segment_length_entry.insert(0, f"{last_seg_m:.0f}")
+                else:
+                    self.viewer.polygone_last_segment_length_entry.insert(0, f"{last_seg_nm:.1f}")
+
+                self.viewer.polygone_last_segment_length_entry.config(state="readonly")
+
+                self.viewer.polygone_last_segment_gisement_entry.config(state="normal")
+                self.viewer.polygone_last_segment_gisement_entry.delete(0, tk.END)
+                self.viewer.polygone_last_segment_gisement_entry.insert(0, f"{last_bearing:.0f}°")
+                self.viewer.polygone_last_segment_gisement_entry.config(state="readonly")
                 
             except Exception:
                 pass
@@ -158,7 +200,6 @@ class MbtilesManager:
         except Exception as e:
             print(f"Erreur lors du calcul de la distance de la ligne '{line_name}': {e}")
             return 0.0
-
 
 
     def draw_lines(self):
@@ -228,7 +269,7 @@ class MbtilesManager:
         try:
             conn_poly = sqlite3.connect("polygones.db")
             cursor_poly = conn_poly.cursor()
-            cursor_poly.execute("SELECT name, color, width, fill, points_list FROM polygons")
+            cursor_poly.execute("SELECT name, color, width, fill, fill_color, points_list FROM polygons")
             polygones = cursor_poly.fetchall()
             conn_poly.close()
         except Exception as e:
@@ -246,7 +287,7 @@ class MbtilesManager:
             "noir": "black",
             "blanc": "white"
         }
-        for name, color, width, fill, points_list in polygones:
+        for name, color, width, fill, fill_color, points_list in polygones:
             try:
                 # Dans la base, les polygones sont maintenant enregistrés avec des coordonnées:
                 # "lon,lat,0 lon2,lat2,0 ..." (séparées par des espaces)
@@ -267,9 +308,9 @@ class MbtilesManager:
                 if len(pixel_points) >= 3:
                     tk_color = color_map.get(str(color).strip().lower(), "red")
                     outline_color = tk_color
-                    fill_color = tk_color if int(fill) else ""
+                    fill_color_name = color_map.get(str(fill_color).strip().lower(), str(fill_color).strip().lower()) if int(fill) else ""
                     # Transparence 50% avec Pillow
-                    if int(fill):
+                    if int(fill) and fill_color_name:
                         # Déterminer la bounding box du polygone
                         xs = [pt[0] for pt in pixel_points]
                         ys = [pt[1] for pt in pixel_points]
@@ -278,19 +319,26 @@ class MbtilesManager:
                         w, h = max_x - min_x + 1, max_y - min_y + 1
                         if w < 1 or h < 1:
                             continue
+                        
                         # Créer une image RGBA transparente
                         img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
                         from PIL import ImageDraw
                         draw = ImageDraw.Draw(img)
+                        
                         # Couleur de remplissage avec alpha 128
-                        rgb = viewer.canvas.winfo_rgb(tk_color)
+                        try:
+                            rgb = viewer.canvas.winfo_rgb(fill_color_name)
+                        except Exception:
+                            rgb = viewer.canvas.winfo_rgb(outline_color)
                         r = int(rgb[0] / 256)
                         g = int(rgb[1] / 256)
                         b = int(rgb[2] / 256)
                         fill_rgba = (r, g, b, 128)
+                        
                         # Décaler les points pour l'image locale
                         local_points = [(x - min_x, y - min_y) for x, y in pixel_points]
                         draw.polygon(local_points, fill=fill_rgba)
+                        
                         # Convertir en PhotoImage et afficher
                         photo = ImageTk.PhotoImage(img)
                         viewer.canvas.create_image(min_x, min_y, image=photo, anchor=tk.NW, tags="polygone")
@@ -336,7 +384,6 @@ class MbtilesManager:
                 viewer.canvas.create_text(x, y-10, text=nom, fill="black", 
                                       font=("Arial", 8, "bold"), tags="point")
     
-
 
     def right_click_get_coordinate(self, event):
         """Gérer le clic droit sur la carte pour renvoyer les coordonneés si mode Click droit"""
@@ -394,14 +441,12 @@ class MbtilesManager:
         
         # Vérifier si on est en mode création de ligne par clic
         if self.viewer.ligne_creation_mode.get() == "carte":
-            self.handle_line_creation_click(event)
+            self.add_clicked_point(event)
         
         # Vérifier si on est en mode création de polygone par clic
-        # elif viewer.polygone_creation_mode.get() == "carte":
-        #     self.handle_polygon_creation_click(event)
+        elif self.viewer.polygone_creation_mode.get() == "carte":
+            self.add_clicked_point(event)
         
-        
-    
     def shift_right_click(self, event):
         """Gérer Shift + clic droit pour supprimer des points de ligne ou polygone"""
         
@@ -409,11 +454,10 @@ class MbtilesManager:
         if self.viewer.ligne_creation_mode.get() == "carte":
             self.remove_last_clicked_point()
         
-        # # Vérifier si on est en mode création de polygone par clic
-        # elif viewer.polygone_creation_mode.get() == "carte":
-        #     self.remove_last_clicked_point_poly(viewer)
-        
-        
+        # Vérifier si on est en mode création de polygone par clic
+        elif self.viewer.polygone_creation_mode.get() == "carte":
+            self.remove_last_clicked_point()
+                
    
     def drag(self, event):        
 
@@ -515,33 +559,46 @@ class MbtilesManager:
         self.viewer.canvas.bind("<Motion>", self.mouse_motion)
         self.viewer.canvas.bind("<Shift-Button-1>", self.shift_left_click)  
         self.viewer.canvas.bind("<Shift-Button-3>", self.shift_right_click)
-    
 
-
-    def choisir_carte():
-        root = tk.Tk()
-        root.withdraw()  # cache la fenêtre principale
-        map_path = filedialog.askopenfilename(
-            title="Choisir une carte MBTiles",
-            filetypes=[("MBTiles", "*.mbtiles"), ("Tous les fichiers", "*.*")]
-        )
-        root.destroy()
-        return map_path
-    
+     
+            
     def import_carte(self, map_path):
         """Importer une carte (fichier MBTiles)"""
 
-        if not os.path.exists(map_path):
-            map_path = self.choisir_carte()
+        if not map_path or not os.path.exists(map_path):
+            map_path = filedialog.askopenfilename(
+                parent=self.viewer.root,
+                title="Choisir une carte MBTiles",
+                filetypes=[("MBTiles", "*.mbtiles"), ("Tous les fichiers", "*.*")]
+            )
 
         if not map_path:
             return
+
+        center_latlon = None
+        if self.viewer.db_path and hasattr(self.viewer, 'min_col') and hasattr(self.viewer, 'max_row'):
+            canvas_width = self.viewer.canvas.winfo_width()
+            canvas_height = self.viewer.canvas.winfo_height()
+
+            if canvas_width <= 1 or canvas_height <= 1:
+                canvas_width, canvas_height = 800, 600
+
+            center_latlon = utility.pixel_to_latlon(
+                canvas_width // 2, canvas_height // 2,
+                self.viewer.offset_x, self.viewer.offset_y,
+                self.viewer.min_col, self.viewer.max_row,
+                self.viewer.zoom
+            )
 
         self.viewer.db_path = map_path
         self.viewer.offset_x = 0
         self.viewer.offset_y = 0
         self.viewer.tile_cache = {}
-        self.viewer.root.after_idle(lambda: (self.centrage_carte(), self.draw_map()))
+
+        if center_latlon:
+            self.viewer.root.after_idle(lambda: (self.draw_map(), self.center_map_on_point(*center_latlon)))
+        else:
+            self.viewer.root.after_idle(lambda: (self.centrage_carte(), self.draw_map()))
     
     def centrage_carte(self):
         """Centrer la carte dans the canvas"""
@@ -611,7 +668,6 @@ class MbtilesManager:
             bounds = cursor.fetchone()
             
             if not bounds or bounds[0] is None:
-                self.viewer.status_bar.config(text=f"Aucune tuile au zoom {self.viewer.zoom}")
                 conn.close()
                 return
             
@@ -676,18 +732,165 @@ class MbtilesManager:
                     tiles_loaded += 1
             
             conn.close()
-            if hasattr(self.viewer, "update_status"):
-                self.viewer.update_status(tiles_loaded)
-            else:
-                self.viewer.status_bar.config(text=f"{tiles_loaded} tuiles chargées")
             
-            #Trace les points, lignes et polygones sur la carte
+            #Trace les points, lignes et polygones sur la carte et lignes temporaires
             self.draw_points()
             self.draw_lines()
             self.draw_polygones()
+            self.draw_temp_line()
 
         except Exception as e:
             messagebox.showerror("Erreur", f"Erreur: {e}")
+
+    def center_map_on_point(self, lat, lon):
+        """Centrer la carte sur un point donné en latitude/longitude"""
+        viewer = self.viewer
+        
+        if not viewer.db_path or not hasattr(viewer, 'min_col') or not hasattr(viewer, 'max_row'):
+            return
+        
+        # Obtenir les dimensions du canvas
+        canvas_width = viewer.canvas.winfo_width()
+        canvas_height = viewer.canvas.winfo_height()
+        
+        if canvas_width <= 1 or canvas_height <= 1:
+            canvas_width, canvas_height = 800, 600
+        
+        # Convertir lat/lon en coordonnées pixel pour le niveau de zoom actuel
+        target_x, target_y = utility.latlon_to_pixel(
+            lat, lon, 
+            viewer.offset_x, viewer.offset_y, 
+            viewer.min_col, viewer.max_row, viewer.zoom
+        )
+        
+        # Calculer le décalage nécessaire pour centrer le point
+        center_x = canvas_width // 2
+        center_y = canvas_height // 2
+        
+        # Ajuster les offsets pour que le point soit au centre
+        viewer.offset_x += center_x - target_x
+        viewer.offset_y += center_y - target_y
+        
+        # Redessiner la carte
+        self.draw_map()
+
+
+
+    def on_point_tree_double_click(self, event):
+        """Gérer le double-clic sur le treeview pour centrer la carte"""
+        # Identifier l'élément double-cliqué
+        item = self.viewer.tree.identify_row(event.y)
+        
+        if item and item in self.viewer.points_checked_items:
+            # Récupérer les données du point
+            point_data = self.viewer.points_checked_items[item]["data"]
+            name, lat, lon = point_data[0], point_data[1], point_data[2]
+            
+            # Vérifier qu'on a une carte chargée avant de centrer
+            if self.viewer.db_path:
+                # Centrer la carte sur ce point
+                self.center_map_on_point(lat, lon)
+                
+                # Optionnel : afficher un message pour confirmer l'action
+                print(f"Carte centrée sur le point '{name}' ({lat:.6f}, {lon:.6f})")
+            else:
+                print("Aucune carte chargée - impossible de centrer")
+
+    def on_polygones_tree_double_click(self, event):
+        """Gérer le double-clic sur le treeview pour centrer la carte sur le premier point du polygone"""
+        # Identifier l'élément double-cliqué
+        item = self.viewer.polygones_tree.identify_row(event.y)
+        
+        if item and item in self.viewer.polygones_checked_items:
+            # Récupérer le nom du polygone
+            polygone_name = self.viewer.polygones_tree.item(item)["values"][1]
+            
+            try:
+                # Récupérer les coordonnées du polygone depuis polygones.db
+                conn = sqlite3.connect("polygones.db")
+                cursor = conn.cursor()
+                cursor.execute("SELECT points_list FROM polygons WHERE name = ?", (polygone_name,))
+                result = cursor.fetchone()
+                conn.close()
+                
+                if result and result[0]:
+                    # Récupérer le premier point du polygone
+                    points_str = result[0]
+                    coordinates_list = points_str.split()
+                    
+                    if coordinates_list:
+                        # Prendre le premier point (format: "lon,lat,0")
+                        first_point = coordinates_list[0].split(',')
+                        if len(first_point) >= 2:
+                            lon = float(first_point[0])
+                            lat = float(first_point[1])
+                            
+                            # Vérifier qu'on a une carte chargée avant de centrer
+                            if self.viewer.db_path:
+                                # Centrer la carte sur ce point
+                                self.center_map_on_point(lat, lon)
+                                
+                                # Optionnel : afficher un message pour confirmer l'action
+                                print(f"Carte centrée sur le premier point du polygone '{polygone_name}' ({lat:.6f}, {lon:.6f})")
+                            else:
+                                print("Aucune carte chargée - impossible de centrer")
+                        else:
+                            print(f"Format de coordonnées invalide pour le polygone '{polygone_name}'")
+                    else:
+                        print(f"Aucun point trouvé dans le polygone '{polygone_name}'")
+                else:
+                    print(f"Polygone '{polygone_name}' non trouvé ou sans points")
+                    
+            except Exception as e:
+                print(f"Erreur lors de la récupération des coordonnées du polygone: {e}")
+
+    def on_lines_tree_double_click(self, event):
+        """Gérer le double-clic sur le treeview pour centrer la carte sur le premier point de la ligne"""
+        # Identifier l'élément double-cliqué
+        item = self.viewer.lines_tree.identify_row(event.y)
+        
+        if item and item in self.viewer.lines_checked_items:
+            # Récupérer le nom de la ligne
+            line_name = self.viewer.lines_tree.item(item)["values"][1]
+            
+            try:
+                # Récupérer les coordonnées de la ligne depuis ligne.db
+                conn = sqlite3.connect("lignes.db")
+                cursor = conn.cursor()
+                cursor.execute("SELECT points_list FROM lines WHERE name = ?", (line_name,))
+                result = cursor.fetchone()
+                conn.close()
+                
+                if result and result[0]:
+                    # Récupérer le premier point de la ligne
+                    points_str = result[0]
+                    coordinates_list = points_str.split()
+                    
+                    if coordinates_list:
+                        # Prendre le premier point (format: "lon,lat,0")
+                        first_point = coordinates_list[0].split(',')
+                        if len(first_point) >= 2:
+                            lon = float(first_point[0])
+                            lat = float(first_point[1])
+                            
+                            # Vérifier qu'on a une carte chargée avant de centrer
+                            if self.viewer.db_path:
+                                # Centrer la carte sur ce point
+                                self.center_map_on_point(lat, lon)
+                                
+                                # Optionnel : afficher un message pour confirmer l'action
+                                print(f"Carte centrée sur le premier point de la ligne '{line_name}' ({lat:.6f}, {lon:.6f})")
+                            else:
+                                print("Aucune carte chargée - impossible de centrer")
+                        else:
+                            print(f"Format de coordonnées invalide pour la ligne '{line_name}'")
+                    else:
+                        print(f"Aucun point trouvé dans la ligne '{line_name}'")
+                else:
+                    print(f"Ligne '{line_name}' non trouvée ou sans points")
+                    
+            except Exception as e:
+                print(f"Erreur lors de la récupération des coordonnées de la ligne: {e}")
 
 
 

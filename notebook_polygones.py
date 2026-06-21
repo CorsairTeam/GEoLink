@@ -36,45 +36,52 @@ def fill_points_frame(viewer):
     viewer.points_listbox_polygon.pack(fill=tk.BOTH, expand=True, pady=(5, 5), padx=(5, 5))        
     
     viewer.add_button_polygon = tk.Button(viewer.center_frame_polygon, text=">>", command=lambda: utility.add_point_to_line(viewer,viewer.points_listbox_polygon,viewer.line_points_listbox_polygon), width=6)
-    viewer.add_button_polygon.pack(pady=(50, 20))            
+    viewer.add_button_polygon.pack(pady=(50, 20))
+    utility.ToolTip(viewer.add_button_polygon, "Rajoute le point selectionné au polygone\n")  
+            
         
     viewer.remove_button_polygon = tk.Button(viewer.center_frame_polygon, text="<<", command=lambda: utility.remove_point_from_line(viewer,viewer.line_points_listbox_polygon), width=6)
-    viewer.remove_button_polygon.pack(pady=5)        
+    viewer.remove_button_polygon.pack(pady=5)
+    utility.ToolTip(viewer.remove_button_polygon, "Retire le point selectionné du polygone\n")        
         
     viewer.ligne_label_polygon = tk.Label(right_frame_polygon, text="Polygones", font=("Arial", 10),justify='center')
     viewer.ligne_label_polygon.pack(anchor=tk.CENTER, padx=(5, 5))
     viewer.line_points_listbox_polygon = tk.Listbox(right_frame_polygon, height=8)
     viewer.line_points_listbox_polygon.pack(fill=tk.BOTH, expand=True, pady=(5, 5), padx=(5, 5))
-    utility.ToolTip(viewer.line_points_listbox_polygon, "● Possibilité de déplacer la position des points dans le polygone (clic gauche maintenu)")
+    utility.ToolTip(viewer.line_points_listbox_polygon, "Réordonnement des points possible par glisser-déposer\n")
          
     #Implémente le drag and drop dans la liste des points de la ligne
     utility.enable_line_points_drag_reorder(viewer,viewer.line_points_listbox_polygon)
 
     # Charge la base des points dans la liste pour créer la route  
     database.load_points_line(viewer,viewer.points_listbox_polygon)
-
-    # TODO :Réinitialiser les points cliqués
-    # viewer.clicked_points = []
-    # clear_temp_line(viewer)
-
+ 
 def fill_map_frame(viewer):
     # Configurer la colonne 1 pour qu'elle s'étende
-    viewer.polygone_points_transfer_frame.grid_columnconfigure(1, weight=1)
+        viewer.polygone_utility_frame.grid_columnconfigure(1, weight=1)
+        
+        # Longueur du dernier segment
+        tk.Label(viewer.polygone_utility_frame, text="Longueur du dernier segment :", width=25, anchor="w").grid(row=1, column=0, padx=5, pady=5)
+        polygone_last_segment_length_frame = tk.Frame(viewer.polygone_utility_frame)
+        polygone_last_segment_length_frame.grid(row=1, column=1, padx=(0, 5), sticky="ew")
 
-    # Longueur totale de la ligne
-    tk.Label(viewer.ligne_points_transfer_frame, text="Longueur totale :", width=25, anchor="w").grid(row=0, column=0, padx=5, pady=5)
-    viewer.line_length_entry = tk.Entry(viewer.ligne_points_transfer_frame, justify="center",state="readonly")
-    viewer.line_length_entry.grid(row=0, column=1, padx=(0, 10), sticky="ew") 
+        viewer.polygone_last_segment_length_entry = tk.Entry(polygone_last_segment_length_frame, justify="center", state="readonly", width=12)
+        viewer.polygone_last_segment_length_entry.grid(row=0, column=0, padx=(0, 12), sticky="w")
 
-    # Longueur du dernier segment
-    tk.Label(viewer.ligne_points_transfer_frame, text="Longueur du dernier segment :", width=25, anchor="w").grid(row=1, column=0, padx=5, pady=5)
-    viewer.line_last_segment_length_entry = tk.Entry(viewer.ligne_points_transfer_frame, justify="center",state="readonly")
-    viewer.line_last_segment_length_entry.grid(row=1, column=1, padx=(0, 10), sticky="ew")
+        viewer.polygone_last_segment_length_combo = ttk.Combobox(
+            polygone_last_segment_length_frame,
+            justify="center",
+            values=["Nm", "m"],
+            width=5,
+            state="readonly",
+        )
+        viewer.polygone_last_segment_length_combo.grid(row=0, column=1, padx=(0, 2), sticky="w")
+        viewer.polygone_last_segment_length_combo.set("Nm")
 
-    # Gisement du dernier segment
-    tk.Label(viewer.ligne_points_transfer_frame, text="Gisement du dernier segment :", width=25, anchor="w").grid(row=2, column=0, padx=5, pady=5)
-    viewer.line_last_segment_gisement_entry = tk.Entry(viewer.ligne_points_transfer_frame, justify="center",state="readonly")
-    viewer.line_last_segment_gisement_entry.grid(row=2, column=1, padx=(0, 10), sticky="ew") 
+        # Gisement du dernier segment
+        tk.Label(viewer.polygone_utility_frame, text="Gisement du dernier segment :", width=25, anchor="w").grid(row=2, column=0, padx=5, pady=5)
+        viewer.polygone_last_segment_gisement_entry = tk.Entry(viewer.polygone_utility_frame, justify="center",state="readonly")
+        viewer.polygone_last_segment_gisement_entry.grid(row=2, column=1, padx=(0, 5), sticky="ew")
 
 def fill_rectangle_frame(viewer):
         
@@ -201,8 +208,11 @@ def fill_cercles_frame(viewer):
             viewer.arc_relie_radio = ttk.Checkbutton(viewer.polygone_utility_frame, text="Relier au centre", variable=viewer.arc_relie_var)
             viewer.arc_relie_radio.grid(row=6, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5)
 
-        # Initialiser l'affichage des champs d'arc
-        # update_arc_fields(viewer)
+        else:
+            # Supprimer les champs si l'arc n'est pas sélectionné
+            for widget in viewer.polygone_utility_frame.grid_slaves():
+                if int(widget.grid_info()["row"]) in [4, 5, 6]:
+                    widget.grid_forget()
 
 def fill_input_frame_polygones(viewer):
     # polygones_input_frame : Effacement du contenu
@@ -270,10 +280,12 @@ def fill_input_frame_polygones(viewer):
         command=lambda: database.create_polygone(viewer),
     ).grid(row=5, column=1, columnspan=2, sticky="ew", pady=5, padx=(0, 10))  
 
+
 def update_onglet_polygones(viewer):
     """Mettre à jour l'interface selon le mode de création sélectionné"""    
 
-    # Remplissage polygone_utility_frame
+    # Remplissage du cadre contenant les champs liés au type de création
+
     for widget in viewer.polygone_utility_frame.winfo_children():
         widget.destroy()
     
@@ -289,16 +301,14 @@ def update_onglet_polygones(viewer):
     elif viewer.polygone_creation_mode.get() == "cercle":
         fill_cercles_frame(viewer)
 
-    # Remplissage fill_input_frame_polygones
+    # Remplissage du cadre contenant les chamsp de saisie communs
+
     fill_input_frame_polygones(viewer)
     
-    # Charge les polygones presents dans la base de données et gere l'affichage sur la carte
+    # Charge les polygones dans le treeview et rafraichie la carte
 
     database.load_item_treeview(viewer,"polygones.db",viewer.polygones_checked_items,viewer.polygones_tree,"polygons")
     
-    # Réinitialiser les points cliqués
-    #TODO: Réinitialiser les points cliqués
-
 def create_treeview_polygones(viewer):
     
     # Titre du tableau de points
@@ -310,9 +320,9 @@ def create_treeview_polygones(viewer):
     )
     polygones_title_label.pack(pady=5, fill=tk.X, padx=5)
 
-    #Info bulle sur le titre
-    ToolTip(polygones_title_label, "● Clic sur le nom du polygone pour afficher ses informations dans le formulaire\n"
-                                   "\u25CF Clic sur la case à cocher pour selectionner le polygone")    
+    #Info bulle sur le titre     
+    ToolTip(polygones_title_label, "● Clic sur la case à cocher pour selectionner le polygone\n"
+                                   "\u25CF Double-clic sur le nom du polygone pour centrer la carte sur le premier point")  
 
     # Création du Treeview
     viewer.polygones_tree = ttk.Treeview(viewer.polygones_treeview_frame, columns=("selected", "nom"), show="headings", height=10)
@@ -324,7 +334,7 @@ def create_treeview_polygones(viewer):
 
     viewer.polygones_checked_items = {}
     viewer.polygones_tree.bind("<Button-1>", lambda event: utility.on_tree_click(viewer, event, viewer.polygones_checked_items, viewer.polygones_tree))  # Selectionne le point
-    viewer.polygones_tree.bind("<Double-1>", lambda event: viewer.fonction_temporaire())  # Centre l'affichage sur le point sélectionné
+    viewer.polygones_tree.bind("<Double-1>", lambda event: viewer.mbtiles_manager.on_polygones_tree_double_click(event))  # Centre l'affichage sur le point sélectionné
     viewer.polygones_tree.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
     # Création des boutons du treeview
@@ -364,14 +374,19 @@ def create_mode_creation_polygone(viewer):
         command=lambda: update_onglet_polygones(viewer),
     ).grid(row=0, column=0, padx=5, pady=5) 
 
-    ttk.Radiobutton(
+    polygone_carte_radiobutton = ttk.Radiobutton(
         viewer.polygones_creation_frame,
         text="Tracé du polygone sur la carte",
         width=40,
         variable=viewer.polygone_creation_mode,
         value="carte",
         command=lambda: update_onglet_polygones(viewer),
-    ).grid(row=1, column=0, padx=5, pady=5)
+    )
+    polygone_carte_radiobutton.grid(row=1, column=0, padx=5, pady=5)
+    utility.ToolTip(polygone_carte_radiobutton, "● Shift + Clic Gauche pour générer un point sur la carte.\n"
+                                                "● Shift + Clic Droit pour effacer le dernier point.")
+
+
 
     ttk.Radiobutton(
         viewer.polygones_creation_frame,
@@ -416,7 +431,7 @@ def setup_polygones_tabs(viewer):
 
     # Frame :  Treeview
     viewer.polygones_treeview_frame = tk.Frame(polygone_frame, relief="groove", borderwidth=1)
-    viewer.polygones_treeview_frame.pack(fill=tk.BOTH, expand=True, side=tk.TOP, padx=5, pady=5)
+    viewer.polygones_treeview_frame.pack(fill=tk.BOTH, expand=True, side=tk.TOP, padx=5, pady=5)    
 
     #Implémentation du mode de création du polygone
     create_mode_creation_polygone(viewer)

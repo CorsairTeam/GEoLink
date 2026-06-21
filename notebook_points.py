@@ -15,8 +15,9 @@ def create_treeview_points(viewer):
         font=("Arial", 10, "bold"),
     )
     points_title_label.pack(pady=5, fill=tk.X, padx=5)
-    ToolTip(points_title_label, "● Clic sur le nom du point pour afficher ses informations dans le formulaire\n"
-                                "\u25CF Clic sur la case à cocher pour selectionner le point")
+    ToolTip(points_title_label, "●  Clic sur nom du point                : Mise à jour des champs\n"
+                                "●  Double-clic sur nom du point  : Centrer la carte sur le point\n"
+                                "●  Clic sur case à cocher              : Sélectionner le point\n" )
 
     # Création du Treeview
     viewer.tree = ttk.Treeview(viewer.treeview_frame, columns=("selected", "nom"), show="headings", height=10)
@@ -28,7 +29,7 @@ def create_treeview_points(viewer):
 
     
     viewer.tree.bind("<Button-1>", lambda event: utility.on_tree_click(viewer, event, viewer.points_checked_items, viewer.tree))  # Selectionne le point
-    viewer.tree.bind("<Double-1>", lambda event: viewer.fonction_temporaire())  # Centre l'affichage sur le point sélectionné
+    viewer.tree.bind("<Double-1>", lambda event: viewer.mbtiles_manager.on_point_tree_double_click(event))  # Centre l'affichage sur le point sélectionné
     viewer.tree.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
     # Création des boutons du treeview
@@ -315,12 +316,13 @@ def fill_map_frame(viewer):
     tk.Label(viewer.input_frame, text="Latitude :", width=18, anchor="w").grid(row=5, column=0, padx=5, pady=5)
     viewer.click_lat_entry = tk.Entry(viewer.input_frame, state="readonly",justify='center')
     viewer.click_lat_entry.grid(row=5, column=1, padx=(0, 10), sticky="ew")
-    ToolTip(viewer.click_lat_entry, "Clic droit sur la carte pour récupérer les coordonnées du point.")
+    ToolTip(viewer.click_lat_entry, "Clic droit sur la carte : Récupérer les coordonnées du point.")
 
     # Longitude
     tk.Label(viewer.input_frame, text="Longitude :", width=18, anchor="w").grid(row=6, column=0, padx=5, pady=5)
     viewer.click_lon_entry = tk.Entry(viewer.input_frame, state="readonly",justify='center')
-    viewer.click_lon_entry.grid(row=6, column=1, padx=(0, 10), sticky="ew")        
+    viewer.click_lon_entry.grid(row=6, column=1, padx=(0, 10), sticky="ew") 
+    ToolTip(viewer.click_lon_entry, "Clic droit sur la carte : Récupérer les coordonnées du point.")       
         
     # Bouton créer
     tk.Button(
@@ -345,14 +347,19 @@ def update_input_frame_points(viewer):
     viewer.nom_entry.grid(row=0, column=1, padx=(0, 10), sticky="ew")
 
     # Taille
-    tk.Label(viewer.input_frame, text="Taille :", width=18, anchor="w").grid(row=1, column=0, padx=5, pady=5)
+    viewer.taille_label = tk.Label(viewer.input_frame, text="Taille :", width=18, anchor="w")
+    viewer.taille_label.grid(row=1, column=0, padx=5, pady=5)
+    ToolTip(viewer.taille_label, "Taille du point dans Foreflight.")
     taille_values = [f"{i / 10:g}" for i in range(2, 31)]
     viewer.taille_entry = ttk.Combobox(viewer.input_frame, values=taille_values, state="readonly", justify="center")
     viewer.taille_entry.set("1")
     viewer.taille_entry.grid(row=1, column=1, padx=(0, 10), sticky="ew")
+    
 
     # Couleur
-    tk.Label(viewer.input_frame, text="Couleur : ", width=18, anchor="w").grid(row=2, column=0, padx=5, pady=5)
+    viewer.point_color_label = tk.Label(viewer.input_frame, text="Couleur : ", width=18, anchor="w")
+    viewer.point_color_label.grid(row=2, column=0, padx=5, pady=5)
+    ToolTip(viewer.point_color_label, "Couleur du point dans Foreflight.")
     colors = [
         "Rouge",
         "Vert",
@@ -367,16 +374,22 @@ def update_input_frame_points(viewer):
     viewer.point_color_entry = ttk.Combobox(viewer.input_frame, values=colors, state="readonly", justify="center")
     viewer.point_color_entry.current(0)
     viewer.point_color_entry.grid(row=2, column=1, padx=(0, 10), sticky="ew")
+    
 
     # Type de points
-    tk.Label(viewer.input_frame, text="Type de points : ", width=18, anchor="w").grid(row=3, column=0, padx=5, pady=5)
+    viewer.type_points_label = tk.Label(viewer.input_frame, text="Type de points : ", width=18, anchor="w")
+    viewer.type_points_label.grid(row=3, column=0, padx=5, pady=5)
+    ToolTip(viewer.type_points_label, "Forme du point dans Foreflight.")
     type_points = ["Cercle", "Carré", "Cible", "Epingle"]
     viewer.type_points_entry = ttk.Combobox(viewer.input_frame, values=type_points, state="readonly", justify="center")
     viewer.type_points_entry.current(0)
     viewer.type_points_entry.grid(row=3, column=1, padx=(0, 10), sticky="ew")
+    
 
     # Couleur de fond du label
-    tk.Label(viewer.input_frame, text="Couleur du label : ", width=18, anchor="w").grid(row=4, column=0, padx=5, pady=5)
+    viewer.label_color_label = tk.Label(viewer.input_frame, text="Couleur du label : ", width=18, anchor="w")
+    viewer.label_color_label.grid(row=4, column=0, padx=5, pady=5)
+    ToolTip(viewer.label_color_label, "Couleur du label dans Foreflight.")
     colors = [
         "Rouge",
         "Vert",
@@ -391,6 +404,7 @@ def update_input_frame_points(viewer):
     viewer.label_color_entry = ttk.Combobox(viewer.input_frame, values=colors, state="readonly", justify="center")
     viewer.label_color_entry.current(0)
     viewer.label_color_entry.grid(row=4, column=1, padx=(0, 10), sticky="ew")
+    
 
     # Affiche les widgets d'entree des coordonnees en fonction du format des coordonnees
     if viewer.creation_mode.get() == "coordonnees":

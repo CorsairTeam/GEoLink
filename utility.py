@@ -2,6 +2,33 @@ import tkinter as tk
 import math
 import sqlite3
 
+# Constantes WGS84
+WGS84_A = 6378137.0  # Demi-grand axe (m)
+WGS84_F = 1/298.257223563  # Aplatissement
+WGS84_B = WGS84_A * (1 - WGS84_F)  # Demi-petit axe
+
+
+def create_point_from_bearing_distance(start_point, distance_km, bearing_deg):
+    """Créer un point depuis un point de départ, une distance en km et un gisement en degrés"""
+    lat1 = math.radians(float(start_point["lat"]))
+    lon1 = math.radians(float(start_point["lon"]))
+    bearing = math.radians(bearing_deg)
+    angular_distance = (distance_km * 1000) / WGS84_A
+
+    lat2 = math.asin(
+        math.sin(lat1) * math.cos(angular_distance)
+        + math.cos(lat1) * math.sin(angular_distance) * math.cos(bearing)
+    )
+    lon2 = lon1 + math.atan2(
+        math.sin(bearing) * math.sin(angular_distance) * math.cos(lat1),
+        math.cos(angular_distance) - math.sin(lat1) * math.sin(lat2)
+    )
+
+    lat = math.degrees(lat2)
+    lon = (math.degrees(lon2) + 540) % 360 - 180
+
+    return lat, lon
+
 
 def calculate_arrow_points(center_lat, center_lon, length_km, bearing_deg, width_km=None):
     """Calcul d'une flèche d'orientation simple pour indiquer la direction d'un rectangle
@@ -221,19 +248,43 @@ def enable_line_points_drag_reorder(viewer,listbox):
     listbox.bind("<B1-Motion>", drag_motion)
     listbox.bind("<ButtonRelease-1>", stop_drag)
 
+
+
 class ToolTip:
     """Classe pour créer des info-bulles (tooltips) sur les widgets"""
+    enabled = True
+    instances = []
     
     def __init__(self, widget, text):
         self.widget = widget
         self.text = text
         self.tooltip_window = None
-        self.widget.bind("<Enter>", self.show_tooltip)
-        self.widget.bind("<Leave>", self.hide_tooltip)
+        ToolTip.instances.append(self)
+        # Si aucun widget n'est fourni ou si le widget n'a pas de méthode bind,
+        # ne pas tenter d'attacher les handlers (évite l'AttributeError)
+        if self.widget is None or not hasattr(self.widget, 'bind'):
+            return
+        try:
+            self.widget.bind("<Enter>", self.show_tooltip)
+            self.widget.bind("<Leave>", self.hide_tooltip)
+        except Exception:
+            # En cas d'erreur d'attachement, ignorer silencieusement
+            return
+    
+    @classmethod
+    def set_enabled(cls, enabled):
+        cls.enabled = enabled
+        if not enabled:
+            for tooltip in cls.instances:
+                try:
+                    tooltip.hide_tooltip()
+                except Exception:
+                    pass
+                
     
     def show_tooltip(self, event=None):
         """Afficher l'info-bulle"""
-        if self.tooltip_window or not self.text:
+        if not ToolTip.enabled or self.tooltip_window or not self.text:
             return
         
         # Calculer la position de l'info-bulle
@@ -314,46 +365,6 @@ def point_field_fill(viewer, item):
         viewer.lon_entry.delete(0, tk.END)
         viewer.lon_entry.insert(0, f"{lon:g}")
 
-def polygon_field_fill(viewer, item):
-    """Remplit les champs du polygone cliqué dans le Tree view."""
-
-    data = viewer.polygones_checked_items[item]["data"]
-    name = data[0]
-
-    try:
-        conn = sqlite3.connect("polygones.db")
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT name, color, width, fill, fill_color FROM polygons WHERE name = ?",
-            (name,),
-        )
-        result = cursor.fetchone()
-    except sqlite3.Error:
-        return
-    finally:
-        if "conn" in locals():
-            conn.close()
-
-    if not result:
-        return
-
-    name, color, width, fill, fill_color = result
-
-    if hasattr(viewer, "polygone_name_entry"):
-        viewer.polygone_name_entry.delete(0, tk.END)
-        viewer.polygone_name_entry.insert(0, name)
-
-    if hasattr(viewer, "taille_entry"):
-        viewer.taille_entry.set(str(width))
-
-    if hasattr(viewer, "line_color_entry"):
-        viewer.line_color_entry.set(color)
-
-    if hasattr(viewer, "fill_color_entry"):
-        viewer.fill_color_entry.set(fill_color)
-
-    if hasattr(viewer, "polygone_fill_var"):
-        viewer.polygone_fill_var.set(1 if fill in (1, True, "1", "True", "true") else 0)
 
 def on_tree_click(viewer, event, checked_items, treeview):
     """En fonctiondu clic, coche la case ou remplit les champs de Input_frame"""
@@ -366,10 +377,7 @@ def on_tree_click(viewer, event, checked_items, treeview):
             toggle_checkbox(item, checked_items, treeview)
 
         if column == "#2" and item in checked_items and checked_items is viewer.points_checked_items:
-            point_field_fill(viewer, item)
-
-        if column == "#2" and item in checked_items and checked_items is viewer.polygones_checked_items:
-            polygon_field_fill(viewer, item)
+            point_field_fill(viewer, item)        
 
 def toggle_checkbox(item, checked_items, treeview):
     """Gère le cochage/décochage de la coche du Treeview"""

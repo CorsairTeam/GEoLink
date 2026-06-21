@@ -156,7 +156,6 @@ def update_input_frame_lignes(viewer):
     viewer.clicked_points = []
     viewer.mbtiles_manager.clear_temp_line()
 
-
 def create_treeview_lines(viewer):    
 
      # Titre du tableau de points
@@ -168,7 +167,8 @@ def create_treeview_lines(viewer):
     )
     lignes_title_label.pack(pady=5, fill=tk.X, padx=5)
     utility.ToolTip(lignes_title_label, "● Clic sur le nom de la ligne pour afficher ses informations dans le formulaire\n"
-                                "\u25CF Clic sur la case à cocher pour selectionner la ligne")
+                                "\u25CF Clic sur la case à cocher pour selectionner la ligne\n"
+                                "\u25CF Double-clic sur le nom de la ligne pour centrer la carte sur le premier point")
     
     # Création du Treeview lines_tree
     viewer.lines_tree = ttk.Treeview(viewer.lines_treeview_frame, columns=("selected", "nom"), show="headings", height=10)
@@ -179,7 +179,7 @@ def create_treeview_lines(viewer):
     viewer.lines_tree.column("nom", width=100, minwidth=100, stretch=True,anchor="center")   
 
     viewer.lines_tree.bind("<Button-1>", lambda event: utility.on_tree_click(viewer, event, viewer.lines_checked_items, viewer.lines_tree))  # Selectionne le point
-    viewer.lines_tree.bind("<Double-1>", lambda event: viewer.fonction_temporaire())  # Centre l'affichage sur le point sélectionné
+    viewer.lines_tree.bind("<Double-1>", lambda event: viewer.mbtiles_manager.on_lines_tree_double_click(event))  # Centre l'affichage sur le point sélectionné
     viewer.lines_tree.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
     # Création des boutons du treeview
@@ -227,8 +227,8 @@ def create_mode_creation_lines(viewer):
         command=lambda: update_input_frame_lignes(viewer),
     )
     ligne_carte_radiobutton.grid(row=1, column=0, padx=5, pady=5)    
-    utility.ToolTip(ligne_carte_radiobutton, "● Shift + Clic droit pour générer un point sur la carte.\n"
-                                                "● Shift + Clic gauche pour effacer le dernier point.")
+    utility.ToolTip(ligne_carte_radiobutton, "● Shift + Clic Gauche pour générer un point sur la carte.\n"
+                                                "● Shift + Clic Droit pour effacer le dernier point.")
 
 def setup_lignes_tabs(viewer):
     # Variable pour récuperer les choix de l'utilisateur ouverture par defaut "points"

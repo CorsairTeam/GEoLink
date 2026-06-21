@@ -48,8 +48,7 @@ def point_add(name, lat, lon, alt, scale, icon, color, hotspot_x, hotspot_y, lab
 
 def line_add(name, color, width, points_list):
     """Ajouter une ligne à la base de données"""
-    print("Dans line_add")
-
+    
     try:
         conn = sqlite3.connect("lignes.db")
         cursor = conn.cursor()
@@ -87,9 +86,7 @@ def line_add(name, color, width, points_list):
             conn.close()
 
 def polygone_add(name, color, width, fill, fill_color, points_list):
-    """Ajouter un polygone à la base de données"""
-
-    print("Dans polygone_add")
+    """Ajouter un polygone à la base de données"""  
 
     try:
         conn = sqlite3.connect("polygones.db")
@@ -113,8 +110,7 @@ def polygone_add(name, color, width, fill, fill_color, points_list):
                     
             conn.commit()
             return "updated"
-
-        print("Insertion du polygone")
+        
         cursor.execute("INSERT INTO polygons (name, color, width, fill, fill_color, points_list) VALUES (?, ?, ?, ?, ?, ?)",
             (name, color, width, fill, fill_color, points_list),)
         conn.commit()
@@ -297,6 +293,27 @@ def polygon_coordinates_cercle_get(viewer):
 
     return coordinates_list
 
+def polygon_coordinates_carte_get(viewer):
+    """Récupérer les coordonnées du polygone à partir des points cliqués sur la carte"""
+    
+    coordinates_list =[]
+   
+    if len(viewer.clicked_points) < 3:
+        messagebox.showerror("Erreur", "Un polygone doit contenir au moins 3 points. Cliquez sur la carte pour ajouter des points.")
+        return
+
+    # # Convertir les points cliqués au format requis et fermer automatiquement le polygone
+    for lat, lon in viewer.clicked_points:
+        coordinates_list.append(f"{lon},{lat},0")
+            
+    # Ajouter automatiquement le premier point à la fin pour fermer le polygone
+    if len(viewer.clicked_points) > 0:
+        first_lat, first_lon = viewer.clicked_points[0]
+        coordinates_list.append(f"{first_lon},{first_lat},0")              
+  
+    return coordinates_list
+
+
 
 def load_item_treeview(viewer,database_name,checked_items,treeview,table_name):
     """Charger toutes les lignes depuis lignes.db"""
@@ -413,16 +430,15 @@ def create_ligne(viewer):
             return
             
     elif mode == "carte":
-        print("Mode carte non implémenté pour le moment")
-        # # Mode carte : utiliser les points cliqués
-        # if len(viewer.clicked_points) < 2:
-        #     messagebox.showerror("Erreur", "Une ligne doit contenir au moins 2 points. Cliquez sur la carte pour ajouter des points.")
-        #     return
         
-        # # Convertir les points cliqués au format requis
-        # for lat, lon in viewer.clicked_points:
-        #     coordinates_list.append(f"{lon},{lat},0")
-        return            
+        # Mode carte : utiliser les points cliqués
+        if len(viewer.clicked_points) < 2:
+            messagebox.showerror("Erreur", "Une ligne doit contenir au moins 2 points. Cliquez sur la carte pour ajouter des points.")
+            return
+        
+        # Convertir les points cliqués au format requis
+        for lat, lon in viewer.clicked_points:
+            coordinates_list.append(f"{lon},{lat},0")                    
 
     points_str = " ".join(coordinates_list)
         
@@ -435,7 +451,7 @@ def create_ligne(viewer):
     if result == "error" or result == "cancelled":
         return        
         
-    # Recharger la liste des lignes dans le treeview
+    # Recharger la liste des lignes dans le treeview et mise à jour de l'affichage sur la carte
     load_item_treeview(viewer,"lignes.db",viewer.lines_checked_items,viewer.lines_tree,"lines")
 
     if result == "updated":
@@ -443,8 +459,10 @@ def create_ligne(viewer):
     else:
         messagebox.showinfo("Succès", f"Ligne '{name}' créée avec succès")
 
-    # Réinitialiser les champs
+    # Réinitialiser les champs effacement ligne temporaire
     viewer.line_name_entry.delete(0, tk.END)
+    viewer.clicked_points = []
+    viewer.mbtiles_manager.clear_temp_line()
     
     if mode == "points":
         viewer.line_points_listbox.delete(0, tk.END)        
@@ -472,7 +490,9 @@ def create_polygone(viewer):
         return
         
     #Variable du mode de création
-    creation_mode=viewer.polygone_creation_mode.get()    
+    creation_mode=viewer.polygone_creation_mode.get() 
+
+    coordinates_list = []   
           
     #Génération des coordonnées récupérées dans (coordinates_list) passées ensuite en paramètre (points_str)
     try:
@@ -480,21 +500,8 @@ def create_polygone(viewer):
             coordinates_list = polygon_coordinates_points_get(viewer)    
             
         elif creation_mode == "carte":
-            # # Mode carte : utiliser les points cliqués
-            # if len(viewer.clicked_points_poly) < 3:
-            #     messagebox.showerror("Erreur", "Un polygone doit contenir au moins 3 points. Cliquez sur la carte pour ajouter des points.")
-            #     return
-            
-            # # Convertir les points cliqués au format requis et fermer automatiquement le polygone
-            # for lat, lon in viewer.clicked_points_poly:
-            #     coordinates_list.append(f"{lon},{lat},0")
-            
-            # # Ajouter automatiquement le premier point à la fin pour fermer le polygone
-            # if len(viewer.clicked_points_poly) > 0:
-            #     first_lat, first_lon = viewer.clicked_points_poly[0]
-            #     coordinates_list.append(f"{first_lon},{first_lat},0")
-            pass    
-            
+            coordinates_list=polygon_coordinates_carte_get(viewer)
+                      
         elif creation_mode == "rectangle":
             coordinates_list = polygon_coordinates_rectangle_get(viewer)
             
@@ -520,32 +527,22 @@ def create_polygone(viewer):
         if result == "error" or result == "cancelled":
             return        
         
-        # Rechargement de la liste des polygones dans le treeview
+        # Rechargement de la liste des polygones dans le treeview et mise à jour de l'affichage sur la carte
         load_item_treeview(viewer,"polygones.db",viewer.polygones_checked_items,viewer.polygones_tree,"polygons")
 
         if result == "updated":
             messagebox.showinfo("Succès", f"Polygone '{name}' mis à jour avec succès")
         else:
-            messagebox.showinfo("Succès", f"Polygone '{name}' créé avec succès")
-             
+            messagebox.showinfo("Succès", f"Polygone '{name}' créé avec succès")             
         
-        # Réinitialise les champs de saisie
-        viewer.polygone_name_entry.delete(0, tk.END)        
+        # Réinitialise les champs de saisie et effacement polygone temporaire
+        viewer.polygone_name_entry.delete(0, tk.END)
+        viewer.clicked_points = []
+        viewer.mbtiles_manager.clear_temp_line()        
         
         if creation_mode == "points":
             # Vider la listbox des points du polygone
-            viewer.line_points_listbox_polygon.delete(0, tk.END)
-            
-        
-        elif creation_mode == "carte":
-            #Vide la liste des points cliqués et efface le polygone temporaire
-            # viewer.clicked_points_poly = []
-            # clear_temp_polygon(viewer) 
-            pass                           
-                               
-        # Redessiner les polygones sur la carte
-        # if hasattr(viewer, 'mbtiles_manager'):
-        #     viewer.mbtiles_manager.draw_polygones()            
+            viewer.line_points_listbox_polygon.delete(0, tk.END)    
         
     except sqlite3.Error as e:
         messagebox.showerror("Erreur", f"Erreur lors de la création du polygone: {e}")
@@ -655,8 +652,6 @@ def create_point(viewer):
 
     viewer.click_lat_entry.delete(0, tk.END)
     viewer.click_lon_entry.delete(0, tk.END)
-
-
 
 
 def coord_point_from_click(viewer):
