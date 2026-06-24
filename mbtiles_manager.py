@@ -10,6 +10,13 @@ class MbtilesManager:
     
     def add_clicked_point(self, event):
         """Gérer les clics pour la création de lignes"""
+        selected_tab = self.viewer.notebook.select()
+        tab_text = self.viewer.notebook.tab(selected_tab, "text").strip()
+        in_line_mode = (tab_text == "Lignes" and self.viewer.ligne_creation_mode.get() == "carte")
+        in_poly_mode = (tab_text == "Polygones" and self.viewer.polygone_creation_mode.get() == "carte")
+        if not in_line_mode and not in_poly_mode:
+            return
+
         # Convertir les coordonnées pixel en lat/lon
         if not hasattr(self.viewer, 'min_col') or not hasattr(self.viewer, 'max_row'):
             return
@@ -32,6 +39,106 @@ class MbtilesManager:
         else:
             print("Aucun point à supprimer")
 
+
+    def find_nearest_clicked_point(self, x, y, threshold=10):
+        """Retourne l'index du point créé le plus proche si proche de la souris."""
+        if not hasattr(self.viewer, 'clicked_points') or not self.viewer.clicked_points:
+            return None
+
+        best_index = None
+        best_dist = threshold
+        for idx, (lat, lon) in enumerate(self.viewer.clicked_points):
+            px, py = utility.latlon_to_pixel(lat, lon, self.viewer.offset_x, self.viewer.offset_y,
+                                             self.viewer.min_col, self.viewer.max_row, self.viewer.zoom)
+            dist = ((px - x) ** 2 + (py - y) ** 2) ** 0.5
+            if dist < best_dist:
+                best_dist = dist
+                best_index = idx
+
+        return best_index
+
+    def distance_point_to_segment(self, x, y, x1, y1, x2, y2):
+        """Retourne la distance minimale entre un point et un segment."""
+        dx = x2 - x1
+        dy = y2 - y1
+        if dx == 0 and dy == 0:
+            return ((x - x1) ** 2 + (y - y1) ** 2) ** 0.5
+        t = ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy)
+        t = max(0.0, min(1.0, t))
+        proj_x = x1 + t * dx
+        proj_y = y1 + t * dy
+        return ((x - proj_x) ** 2 + (y - proj_y) ** 2) ** 0.5
+
+    def is_near_temp_shape(self, x, y, threshold=8):
+        """Retourne True si le curseur est près de la ligne ou du polygone temporaire."""
+        if not hasattr(self.viewer, 'clicked_points') or len(self.viewer.clicked_points) < 2:
+            return False
+
+        pixel_points = []
+        for lat, lon in self.viewer.clicked_points:
+            px, py = utility.latlon_to_pixel(lat, lon, self.viewer.offset_x, self.viewer.offset_y,
+                                             self.viewer.min_col, self.viewer.max_row, self.viewer.zoom)
+            pixel_points.append((px, py))
+
+        for i in range(len(pixel_points) - 1):
+            x1, y1 = pixel_points[i]
+            x2, y2 = pixel_points[i + 1]
+            if self.distance_point_to_segment(x, y, x1, y1, x2, y2) <= threshold:
+                return True
+
+        selected_tab = self.viewer.notebook.select()
+        tab_text = self.viewer.notebook.tab(selected_tab, "text").strip()
+        if self.viewer.polygone_creation_mode.get() == "carte" and tab_text == "Polygones" and len(pixel_points) >= 3:
+            x1, y1 = pixel_points[-1]
+            x2, y2 = pixel_points[0]
+            if self.distance_point_to_segment(x, y, x1, y1, x2, y2) <= threshold:
+                return True
+
+        return False
+
+    def drag_clicked_point(self, event):
+        """Met à jour la coordonnée d'un point sélectionné pendant un drag."""
+        if not hasattr(self.viewer, 'drag_point_index') or self.viewer.drag_point_index is None:
+            return
+
+        if not hasattr(self.viewer, 'min_col') or not hasattr(self.viewer, 'max_row'):
+            return
+
+        lat, lon = utility.pixel_to_latlon(event.x, event.y,
+                                          self.viewer.offset_x, self.viewer.offset_y,
+                                          self.viewer.min_col, self.viewer.max_row,
+                                          self.viewer.zoom)
+        if lat is None or lon is None:
+            return
+
+        self.viewer.clicked_points[self.viewer.drag_point_index] = (lat, lon)
+        self.draw_temp_line()
+
+    def drag_shape(self, event):
+        """Déplace l'ensemble de la forme temporaire par translation."""
+        if not hasattr(self.viewer, 'drag_original_points') or self.viewer.drag_original_points is None:
+            return
+
+        dx = event.x - self.viewer.drag_start_x
+        dy = event.y - self.viewer.drag_start_y
+        new_points = []
+        for lat, lon in self.viewer.drag_original_points:
+            px, py = utility.latlon_to_pixel(lat, lon, self.viewer.offset_x, self.viewer.offset_y,
+                                             self.viewer.min_col, self.viewer.max_row, self.viewer.zoom)
+            new_lat, new_lon = utility.pixel_to_latlon(px + dx, py + dy,
+                                                      self.viewer.offset_x, self.viewer.offset_y,
+                                                      self.viewer.min_col, self.viewer.max_row,
+                                                      self.viewer.zoom)
+            if new_lat is None or new_lon is None:
+                new_points.append((lat, lon))
+            else:
+                new_points.append((new_lat, new_lon))
+
+        self.viewer.clicked_points = new_points
+        self.draw_temp_line()
+
+
+    
     def draw_temp_line(self):
         """Dessiner la ligne temporaire et les points temporaires sur la carte"""
         self.clear_temp_line()
@@ -155,6 +262,29 @@ class MbtilesManager:
         if hasattr(self.viewer, 'canvas'):
             self.viewer.canvas.delete("temp_line")  # Efface tous les objets avec le tag "temp_line"
             self.viewer.temp_line_id = None
+
+    def clear_temp_point(self):
+        if hasattr(self.viewer, 'canvas'):
+            self.viewer.canvas.delete("temp_point")
+
+    def draw_temp_point(self):
+        if not hasattr(self.viewer, 'canvas'):
+            return
+
+        self.viewer.canvas.delete("temp_point")
+
+        if not hasattr(self.viewer, 'clicked_point'):
+            return
+
+        if not hasattr(self.viewer, 'min_col') or not hasattr(self.viewer, 'max_row'):
+            return
+
+        lat, lon = self.viewer.clicked_point
+        px, py = utility.latlon_to_pixel(lat, lon, self.viewer.offset_x, self.viewer.offset_y,
+                                         self.viewer.min_col, self.viewer.max_row, self.viewer.zoom)
+        radius = 5
+        self.viewer.canvas.create_oval(px-radius, py-radius, px+radius, py+radius,
+                                       fill="blue", outline="darkblue", width=2, tags="temp_point")
     
     def calculate_line_total_distance(self, line_name):
         """Calculer la distance totale d'une ligne en utilisant les coordonnées de ses points"""
@@ -385,6 +515,38 @@ class MbtilesManager:
                                       font=("Arial", 8, "bold"), tags="point")
     
 
+
+    def on_left_click(self, event):
+        """Sélectionne un point ou la forme temporaire pour drag."""
+        selected_tab = self.viewer.notebook.select()
+        tab_text = self.viewer.notebook.tab(selected_tab, "text").strip()
+        in_line_mode = (tab_text == "Lignes" and self.viewer.ligne_creation_mode.get() == "carte")
+        in_poly_mode = (tab_text == "Polygones" and self.viewer.polygone_creation_mode.get() == "carte")
+        if in_line_mode or in_poly_mode:
+            idx = self.find_nearest_clicked_point(event.x, event.y)
+            if idx is not None:
+                # Pour MAJ+clic maintenu : déplacer l'ensemble de la forme plutôt qu'un seul point
+                self.viewer.drag_target = "shape"
+                self.viewer.drag_start_x = event.x
+                self.viewer.drag_start_y = event.y
+                self.viewer.drag_original_points = list(self.viewer.clicked_points)
+                return
+
+            if self.is_near_temp_shape(event.x, event.y):
+                self.viewer.drag_target = "shape"
+                self.viewer.drag_start_x = event.x
+                self.viewer.drag_start_y = event.y
+                self.viewer.drag_original_points = list(self.viewer.clicked_points)
+                return
+
+        self.start_drag(event)
+
+    def on_left_release(self, event):
+        """Arrête la sélection de drag."""
+        self.viewer.drag_target = None
+        self.viewer.drag_point_index = None
+        self.viewer.drag_original_points = None
+
     def right_click_get_coordinate(self, event):
         """Gérer le clic droit sur la carte pour renvoyer les coordonneés si mode Click droit"""
         if self.viewer.creation_mode.get() != "click":
@@ -408,6 +570,8 @@ class MbtilesManager:
             self.viewer.click_lon_entry.delete(0, tk.END)
             self.viewer.click_lon_entry.insert(0, f"{lon:.6f}")
             self.viewer.click_lon_entry.config(state="readonly")
+            self.viewer.clicked_point = (lat, lon)
+            self.draw_temp_point()
 
     def start_drag(self, event):        
         self.viewer.drag_start_x = event.x
@@ -420,8 +584,8 @@ class MbtilesManager:
             selected_tab = self.viewer.notebook.select()
             tab_text = self.viewer.notebook.tab(selected_tab, "text")
             
-            if tab_text == "  Points  ":                
-                self.right_click_get_coordinate(event)
+        #     if tab_text == "  Points  ":                
+        #         self.right_click_get_coordinate(event)
                 
         #     elif tab_text == "  Lignes  " and self.is_line_creation_mode():
         #         # Mode création de ligne par carte - ne rien faire ici
@@ -438,33 +602,73 @@ class MbtilesManager:
     
     def shift_left_click(self, event):
         """Gérer Shift + clic gauche pour ajouter des points de ligne ou polygone"""
-        
-        # Vérifier si on est en mode création de ligne par clic
-        if self.viewer.ligne_creation_mode.get() == "carte":
-            self.add_clicked_point(event)
-        
-        # Vérifier si on est en mode création de polygone par clic
-        elif self.viewer.polygone_creation_mode.get() == "carte":
+        # Si on clique avec MAJ, on peut soit ajouter un point (simple clic),
+        # soit démarrer un drag de l'objet si on clique près de la ligne/polygone.
+        try:
+            selected_tab = self.viewer.notebook.select()
+            tab_text = self.viewer.notebook.tab(selected_tab, "text").strip()
+            in_point_mode = (tab_text == "Points" and self.viewer.creation_mode.get() == "click")
+            in_line_mode = (tab_text == "Lignes" and self.viewer.ligne_creation_mode.get() == "carte")
+            in_poly_mode = (tab_text == "Polygones" and self.viewer.polygone_creation_mode.get() == "carte")
+        except Exception:
+            in_point_mode = in_line_mode = in_poly_mode = False
+
+        if in_point_mode:
+            self.right_click_get_coordinate(event)
+            return
+
+        if in_line_mode or in_poly_mode:
+            # Si on est proche d'un point temporaire -> sélectionner ce point pour drag
+            idx = self.find_nearest_clicked_point(event.x, event.y)
+            if idx is not None:
+                self.viewer.drag_target = "clicked_point"
+                self.viewer.drag_point_index = idx
+                self.viewer.drag_start_x = event.x
+                self.viewer.drag_start_y = event.y
+                self.viewer.drag_original_points = list(self.viewer.clicked_points)
+                return
+
+            # Si on est proche de la forme temporaire -> démarrer le drag de la forme
+            if self.is_near_temp_shape(event.x, event.y):
+                self.viewer.drag_target = "shape"
+                self.viewer.drag_start_x = event.x
+                self.viewer.drag_start_y = event.y
+                self.viewer.drag_original_points = list(self.viewer.clicked_points)
+                return
+
+            # Sinon: ajout d'un point simple
             self.add_clicked_point(event)
         
     def shift_right_click(self, event):
         """Gérer Shift + clic droit pour supprimer des points de ligne ou polygone"""
+        selected_tab = self.viewer.notebook.select()
+        tab_text = self.viewer.notebook.tab(selected_tab, "text").strip()
         
         # Vérifier si on est en mode création de ligne par clic
-        if self.viewer.ligne_creation_mode.get() == "carte":
+        if tab_text == "Lignes" and self.viewer.ligne_creation_mode.get() == "carte":
             self.remove_last_clicked_point()
         
         # Vérifier si on est en mode création de polygone par clic
-        elif self.viewer.polygone_creation_mode.get() == "carte":
+        elif tab_text == "Polygones" and self.viewer.polygone_creation_mode.get() == "carte":
             self.remove_last_clicked_point()
                 
    
     def drag(self, event):        
 
-        # Ne pas initier de drag si Shift était pressé (éviter conflit avec création ligne)
-        if event.state & 0x1:  # 0x1 = Shift pressé
+        # Si Shift est pressé, autoriser le drag uniquement si on déplace une cible (shape/point)
+        if event.state & 0x1:
+            if getattr(self.viewer, 'drag_target', None) not in ("shape", "clicked_point"):
+                return
+
+        if getattr(self.viewer, 'drag_target', None) == "clicked_point":
+            self.drag_clicked_point(event)
             return
 
+        if getattr(self.viewer, 'drag_target', None) == "shape":
+            self.drag_shape(event)
+            return
+
+        # Drag de la carte
         if hasattr(self.viewer, 'drag_start_x') and hasattr(self.viewer, 'drag_start_y'):
             dx = event.x - self.viewer.drag_start_x
             dy = event.y - self.viewer.drag_start_y
@@ -550,7 +754,8 @@ class MbtilesManager:
 
     def bind_canvas_events(self):
         """Détecte les événements sur la carte"""
-        self.viewer.canvas.bind("<Button-1>", self.start_drag)
+        self.viewer.canvas.bind("<Button-1>", self.on_left_click)
+        self.viewer.canvas.bind("<ButtonRelease-1>", self.on_left_release)
         self.viewer.canvas.bind("<Button-3>", self.right_click)  
         self.viewer.canvas.bind("<Shift-Button-1>", self.shift_left_click)  
         self.viewer.canvas.bind("<Shift-Button-3>", self.shift_right_click)  
@@ -738,6 +943,7 @@ class MbtilesManager:
             self.draw_lines()
             self.draw_polygones()
             self.draw_temp_line()
+            self.draw_temp_point()
 
         except Exception as e:
             messagebox.showerror("Erreur", f"Erreur: {e}")

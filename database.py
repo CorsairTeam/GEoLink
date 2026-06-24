@@ -398,47 +398,59 @@ def create_ligne(viewer):
     mode = viewer.ligne_creation_mode.get()
     coordinates_list = []
     
-    if mode == "points":
-        # Création de la liste des points à partir des noms sélectionnés
-        point_names = [viewer.line_points_listbox.get(i) for i in range(viewer.line_points_listbox.size())]
-        
-        if len(point_names) < 2:
-            messagebox.showerror("Erreur", "Une ligne doit contenir au moins 2 points")
+    if viewer.ligne_modif_var.get():
+        selected_items = viewer.lines_tree.selection()
+        if not selected_items:
+            messagebox.showerror("Erreur", "Veuillez sélectionner une ligne à modifier")
             return
-        
-        try:
-            # Récupérer les coordonnées des points depuis point.db
-            conn_points = sqlite3.connect("points.db")
-            cursor_points = conn_points.cursor()
+        item = selected_items[0]
+        coordinates_list = viewer.lines_checked_items[item]["data"][3].split()
+    else:
+        if mode == "points":
+            # Création de la liste des points à partir des noms sélectionnés
+            point_names = [viewer.line_points_listbox.get(i) for i in range(viewer.line_points_listbox.size())]
             
-            for point_name in point_names:
-                cursor_points.execute("SELECT lat, lon FROM points WHERE name = ?", (point_name,))
-                result = cursor_points.fetchone()
-                if result:
-                    lat, lon = result
-                    # Stocker les coordonnées au format "lon,lat,0"
-                    coordinates_list.append(f"{lon},{lat},0")
-                else:
-                    messagebox.showerror("Erreur", f"Point '{point_name}' introuvable dans la base de données")
-                    conn_points.close()
-                    return
+            if len(point_names) < 2:
+                messagebox.showerror("Erreur", "Une ligne doit contenir au moins 2 points")
+                return
             
-            conn_points.close()
+            try:
+                # Récupérer les coordonnées des points depuis point.db
+                conn_points = sqlite3.connect("points.db")
+                cursor_points = conn_points.cursor()
+                
+                for point_name in point_names:
+                    cursor_points.execute("SELECT lat, lon FROM points WHERE name = ?", (point_name,))
+                    result = cursor_points.fetchone()
+                    if result:
+                        lat, lon = result
+                        # Stocker les coordonnées au format "lon,lat,0"
+                        coordinates_list.append(f"{lon},{lat},0")
+                    else:
+                        messagebox.showerror("Erreur", f"Point '{point_name}' introuvable dans la base de données")
+                        conn_points.close()
+                        return
+                
+                conn_points.close()
+                
+            except Exception as e:
+                messagebox.showerror("Erreur", f"Erreur lors de la récupération des points: {e}")
+                return
+                
+        elif mode == "carte":
             
-        except Exception as e:
-            messagebox.showerror("Erreur", f"Erreur lors de la récupération des points: {e}")
-            return
+            # Mode carte : utiliser les points cliqués
+            if len(viewer.clicked_points) < 2:
+                messagebox.showerror("Erreur", "Une ligne doit contenir au moins 2 points. Cliquez sur la carte pour ajouter des points.")
+                return
             
-    elif mode == "carte":
-        
-        # Mode carte : utiliser les points cliqués
-        if len(viewer.clicked_points) < 2:
-            messagebox.showerror("Erreur", "Une ligne doit contenir au moins 2 points. Cliquez sur la carte pour ajouter des points.")
-            return
-        
-        # Convertir les points cliqués au format requis
-        for lat, lon in viewer.clicked_points:
-            coordinates_list.append(f"{lon},{lat},0")                    
+            # Convertir les points cliqués au format requis
+            for lat, lon in viewer.clicked_points:
+                coordinates_list.append(f"{lon},{lat},0")                    
+
+    if not coordinates_list:
+        messagebox.showerror("Erreur", "Aucune coordonnée générée")
+        return
 
     points_str = " ".join(coordinates_list)
         
@@ -496,23 +508,35 @@ def create_polygone(viewer):
           
     #Génération des coordonnées récupérées dans (coordinates_list) passées ensuite en paramètre (points_str)
     try:
-        if creation_mode == "points":
-            coordinates_list = polygon_coordinates_points_get(viewer)    
-            
-        elif creation_mode == "carte":
-            coordinates_list=polygon_coordinates_carte_get(viewer)
-                      
-        elif creation_mode == "rectangle":
-            coordinates_list = polygon_coordinates_rectangle_get(viewer)
-            
-        elif creation_mode == "cercle":
-            coordinates_list=polygon_coordinates_cercle_get(viewer)
+        
+        
+        if viewer.polygone_modif_var.get():
+            selected_items = viewer.polygones_tree.selection()
+            if not selected_items:
+                messagebox.showerror("Erreur", "Veuillez sélectionner un polygone à modifier")
+                return
+            item = selected_items[0]
+            coordinates_list = viewer.polygones_checked_items[item]["data"][5].split()
+        else:
+            if creation_mode == "points":
+                coordinates_list = polygon_coordinates_points_get(viewer)    
+                
+            elif creation_mode == "carte":
+                coordinates_list=polygon_coordinates_carte_get(viewer)
+                          
+            elif creation_mode == "rectangle":
+                coordinates_list = polygon_coordinates_rectangle_get(viewer)
+                
+            elif creation_mode == "cercle":
+                coordinates_list=polygon_coordinates_cercle_get(viewer)
                     
         # Vérifier que nous avons des coordonnées
         if not coordinates_list:
             messagebox.showerror("Erreur", "Aucune coordonnée générée")
             return        
-                
+
+
+
         #  Création de la chaine de coordonnées
         points_str = " ".join(coordinates_list)
 

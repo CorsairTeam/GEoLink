@@ -32,22 +32,24 @@ def update_input_frame_lignes(viewer):
         right_frame = tk.Frame(viewer.ligne_points_frame)
         right_frame.grid(row=0, column=2, sticky="nsew")
 
-        viewer.points_label = tk.Label(left_frame, text="Base de points", font=("Arial", 10),justify='center')
+        viewer.points_label = tk.Label(left_frame, text="Points", font=("Arial", 10),justify='center')
         viewer.points_label.pack(anchor=tk.CENTER, padx=(5, 5))
         viewer.points_listbox = tk.Listbox(left_frame, height=8)
         viewer.points_listbox.pack(fill=tk.BOTH, expand=True, pady=(5, 5), padx=(5, 5))        
         
         viewer.add_button = tk.Button(viewer.center_frame, text=">>", command=lambda: utility.add_point_to_line(viewer,viewer.points_listbox,viewer.line_points_listbox), width=6)
-        viewer.add_button.pack(pady=(50, 20))            
+        viewer.add_button.pack(pady=(50, 20))
+        utility.ToolTip(viewer.add_button, "Ajoute le point sélectionné à la ligne")            
         
         viewer.remove_button = tk.Button(viewer.center_frame, text="<<", command=lambda: utility.remove_point_from_line(viewer,viewer.line_points_listbox), width=6)
-        viewer.remove_button.pack(pady=5)        
+        viewer.remove_button.pack(pady=5)
+        utility.ToolTip(viewer.remove_button, "Supprime le point sélectionné de la ligne")        
         
         viewer.ligne_label = tk.Label(right_frame, text="Ligne", font=("Arial", 10),justify='center')
         viewer.ligne_label.pack(anchor=tk.CENTER, padx=(5, 5))
         viewer.line_points_listbox = tk.Listbox(right_frame, height=8)
         viewer.line_points_listbox.pack(fill=tk.BOTH, expand=True, pady=(5, 5), padx=(5, 5))
-        utility.ToolTip(viewer.line_points_listbox, "● Possibilité de déplacer la position des points dans la ligne (clic gauche maintenu)")
+        utility.ToolTip(viewer.line_points_listbox, "'Clic Gauche + Déplacer' : Déplace le point dans la ligne")
          
         #Implémente le drag and drop dans la liste des points de la ligne
         utility.enable_line_points_drag_reorder(viewer,viewer.line_points_listbox)
@@ -141,12 +143,21 @@ def update_input_frame_lignes(viewer):
     viewer.line_color_entry.current(0)
     viewer.line_color_entry.grid(row=2, column=1, padx=(0, 10), sticky="ew")  
 
+    #  Modifier
+    # viewer.ligne_modif_var = tk.IntVar()
+    # viewer.ligne_modif_radio = ttk.Checkbutton(viewer.lines_input_frame, text="Modifier", variable=viewer.ligne_modif_var)
+    # viewer.ligne_modif_radio.grid(row=3, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5)
+    # utility.ToolTip(viewer.ligne_modif_radio, "● Clic sur la case à cocher pour passer en mode modification\n"
+    #                                "● Sélectionner une ligne dans le tableau pour la modifier\n"                                   
+    #                                "● Modifier les champs de la ligne sélectionnée\n"
+    #                                "● Cliquer sur le bouton 'Créer la ligne' pour valider")
+
     # Bouton créer
     tk.Button(
         viewer.lines_input_frame,
         text="Créer la ligne",
         command=lambda: database.create_ligne(viewer),
-    ).grid(row=3, column=1, columnspan=2, sticky="ew", pady=5, padx=(0, 10))            
+    ).grid(row=4, column=1, columnspan=2, sticky="ew", pady=5, padx=(0, 10))            
         
     
     # Charge les lignes presents dans la base de données et gere l'affichage sur la carte
@@ -166,13 +177,12 @@ def create_treeview_lines(viewer):
         font=("Arial", 10, "bold"),
     )
     lignes_title_label.pack(pady=5, fill=tk.X, padx=5)
-    utility.ToolTip(lignes_title_label, "● Clic sur le nom de la ligne pour afficher ses informations dans le formulaire\n"
-                                "\u25CF Clic sur la case à cocher pour selectionner la ligne\n"
+    utility.ToolTip(lignes_title_label, "\u25CF Clic sur la case à cocher pour selectionner la ligne\n"
                                 "\u25CF Double-clic sur le nom de la ligne pour centrer la carte sur le premier point")
     
     # Création du Treeview lines_tree
     viewer.lines_tree = ttk.Treeview(viewer.lines_treeview_frame, columns=("selected", "nom"), show="headings", height=10)
-    viewer.lines_tree.heading("selected", text="Export")
+    viewer.lines_tree.heading("selected", text="Select")
     viewer.lines_tree.heading("nom", text="Nom")
 
     viewer.lines_tree.column("selected", width=50, minwidth=50, stretch=False,anchor="center")
@@ -211,7 +221,7 @@ def create_mode_creation_lines(viewer):
     # Remplissage de type_creation_frame    
     ttk.Radiobutton(
         viewer.lignes_creation_frame,
-        text="Utilisation des points de la base de données",
+        text="Création par sélection de points",
         width=40,
         variable=viewer.ligne_creation_mode,
         value="points",
@@ -220,19 +230,22 @@ def create_mode_creation_lines(viewer):
 
     ligne_carte_radiobutton = ttk.Radiobutton(
         viewer.lignes_creation_frame,
-        text="Tracé de la ligne sur la carte",
+        text="Création sur la carte",
         width=40,
         variable=viewer.ligne_creation_mode,
         value="carte",
         command=lambda: update_input_frame_lignes(viewer),
     )
     ligne_carte_radiobutton.grid(row=1, column=0, padx=5, pady=5)    
-    utility.ToolTip(ligne_carte_radiobutton, "● Shift + Clic Gauche pour générer un point sur la carte.\n"
-                                                "● Shift + Clic Droit pour effacer le dernier point.")
+    utility.ToolTip(ligne_carte_radiobutton,"● SHIFT + CLIC GAUCHE pour générer un point sur la carte.\n"
+                                            "● SHIFT + CLIC DROIT pour effacer le dernier point.\n"
+                                            "● CLIC GAUCHE MAINTENU sur la ligne pour la translater sur la carte.\n"
+                                            "● SHIFT + CLIC GAUCHE MAINTENU sur un point existant pour le déplacer.")
 
 def setup_lignes_tabs(viewer):
     # Variable pour récuperer les choix de l'utilisateur ouverture par defaut "points"
     viewer.ligne_creation_mode = tk.StringVar(value="points")
+    viewer.ligne_modif_var = tk.IntVar(value=0)
 
     #Tableau tracage des cases cochées
     viewer.lines_checked_items = {}

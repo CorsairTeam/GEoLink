@@ -1,4 +1,6 @@
 import os
+import sys
+import webbrowser
 import tkinter as tk
 from tkinter import Menu, ttk
 from mbtiles_manager import MbtilesManager
@@ -6,19 +8,27 @@ import database
 import notebook_points
 import notebook_lines
 import notebook_polygones
+import import_export_manager
 
-# Ligne de commande compilation : pyinstaller --noconsole main.py
+# Ligne de commande compilation : pyinstaller --noconsole --add-data "aide.html;." main.py
 
 class MBTilesViewer:
     
     def fonction_temporaire(self):
         pass
     
+    def open_help(self):
+        base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+        help_path = os.path.join(base_path, "aide.html")
+        webbrowser.open(f"file:///{help_path}")
+    
     def toggle_tooltips(self):
         from utility import ToolTip
         ToolTip.set_enabled(not ToolTip.enabled)
         label = "Afficher les Tooltips" if not ToolTip.enabled else "Masquer les Tooltips"
-        self.aide_menu.entryconfig(1, label=label)      
+        self.aide_menu.entryconfig(self.tooltips_menu_index, label=label)  
+        
+            
 
     def on_tab_changed(self, event):
         """Gérer le changement d'onglet"""
@@ -26,23 +36,24 @@ class MBTilesViewer:
         
         selected_tab = self.notebook.select()
         tab_text = self.notebook.tab(selected_tab, "text").strip()
+        
+        #Efface le point temporaire
+        if hasattr(self, "clicked_point"):
+            del self.clicked_point
+        self.mbtiles_manager.clear_temp_point()
+
+        #Efface la ligne temporaire
+        self.clicked_points = []
+        self.mbtiles_manager.clear_temp_line()
                 
     
         if tab_text == "Lignes":
            notebook_lines.update_input_frame_lignes(self) 
-           self.clicked_points = []
-           self.mbtiles_manager.clear_temp_line()             
-        #load_lines(self)      
-                  
+                             
         elif tab_text == "Polygones":
             notebook_polygones.update_onglet_polygones(self)            
-            self.clicked_points = []
-            self.mbtiles_manager.clear_temp_line()
-
-        elif tab_text == "Points":            
-            self.clicked_points = []
-            self.mbtiles_manager.clear_temp_line()
-    
+            
+        
     def setup_menu(self):
         """Gestion des options du menu"""
         
@@ -56,41 +67,42 @@ class MBTilesViewer:
 
         # Menu : "Importer"        
         importer_menu = Menu(self.menu_bar, tearoff=0)
-        importer_menu.add_command(label="Importer fichier .kml", command=lambda: viewer.fonction_temporaire())
-        importer_menu.add_command(label="Importer fichier .csv", command=lambda: viewer.fonction_temporaire())        
-        importer_menu.add_command(label="Importer fichier .geojson", command=lambda: viewer.fonction_temporaire())
+        importer_menu.add_command(label="Importer fichier KML", command=lambda: import_export_manager.import_kml_to_databases(self))
+        importer_menu.add_command(label="Importer fichier CSV", command=lambda: import_export_manager.import_csv(self))        
+        #importer_menu.add_command(label="Importer fichier .geojson", command=lambda: viewer.fonction_temporaire())
         self.menu_bar.add_cascade(label="Importer", menu=importer_menu)
 
-
-        # Menu : "Exporter"        
+        # Menu : "Exporter vers SDVFR"        
         exporter_menu = Menu(self.menu_bar, tearoff=0)
-        exporter_menu.add_command(label="Exporter vers .kml", command=lambda: viewer.fonction_temporaire())
-        exporter_menu.add_command(label="Exporter vers .csv", command=lambda: viewer.fonction_temporaire()) 
-        exporter_menu.add_command(label="Exporter vers .geojson", command=lambda: viewer.fonction_temporaire())       
+        sdvfr_menu = Menu(exporter_menu, tearoff=0)
+        sdvfr_menu.add_command(label="KML : Exporte les objets sélectionnés", command=lambda: import_export_manager.export_kml(self, export_all=False, foreflight=False))
+        sdvfr_menu.add_command(label="KML : Exporte tous les objets", command=lambda: import_export_manager.export_kml(self, export_all=True, foreflight=False))
+        sdvfr_menu.add_separator()
+        sdvfr_menu.add_command(label="CSV : Exporte les points sélectionnés", command=lambda: import_export_manager.export_csv_sdvfr(self, export_all=False))
+        sdvfr_menu.add_command(label="CSV : Exporte tous les points", command=lambda: import_export_manager.export_csv_sdvfr(self, export_all=True))
+        exporter_menu.add_cascade(label="Sdvfr", menu=sdvfr_menu)
+
+        foreflight_menu = Menu(exporter_menu, tearoff=0)
+        foreflight_menu.add_command(label="KML : Exporte les objets sélectionnés", command=lambda: import_export_manager.export_kml(self, export_all=False, foreflight=True))
+        foreflight_menu.add_command(label="KML : Exporte tous les objets", command=lambda: import_export_manager.export_kml(self, export_all=True, foreflight=True))
+        foreflight_menu.add_separator()
+        foreflight_menu.add_command(label="CSV : Exporte les points sélectionnés", command=lambda: import_export_manager.export_csv_foreflight(self, export_all=False))
+        foreflight_menu.add_command(label="CSV : Exporte tous les points", command=lambda: import_export_manager.export_csv_foreflight(self, export_all=True))
+        exporter_menu.add_cascade(label="Foreflight", menu=foreflight_menu)
         self.menu_bar.add_cascade(label="Exporter", menu=exporter_menu)
-
-        # Menu : "Aide"
-        # aide_menu = Menu(self.menu_bar, tearoff=0)
-        # aide_menu.add_command(label="Fichier Aide", command=lambda: viewer.fonction_temporaire())
-        # aide_menu.add_command(label="Supprimer les Tooltips", command=lambda: self.toggle_tooltips())    
-        # self.menu_bar.add_cascade(label="Aide", menu=aide_menu)
-
+        
         aide_menu = Menu(self.menu_bar, tearoff=0)
-        aide_menu.add_command(label="Fichier Aide", command=lambda: viewer.fonction_temporaire())
-        self.tooltips_menu_index = aide_menu.add_command(label="Masquer les Tooltips", command=lambda: self.toggle_tooltips())
+        aide_menu.add_command(label="Fichier Aide", command=lambda: self.open_help())
+        aide_menu.add_command(label="Masquer les Tooltips", command=lambda: self.toggle_tooltips())
+        self.tooltips_menu_index = 1
         self.aide_menu = aide_menu  # Stocker l'aide_menu pour l'utiliser plus tard
         self.menu_bar.add_cascade(label="Aide", menu=aide_menu)
-
 
         # Ajoute le menu dans la fenêtre principale
         self.root.config(menu=self.menu_bar)
   
     def setup_ui(self):
         """Crée l'interface utilisateur"""
-
-        # Création de la barre de statut
-        self.status_bar = tk.Label(self.root, text="Translation : Clic gauche maintenu et déplacement de la souris | Zoom : Molette de la souris", bd=1, relief=tk.SUNKEN, anchor=tk.E, padx=5, pady=2)
-        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
         # Création du cadre principal
         self.main_frame = tk.Frame(self.root)
@@ -128,8 +140,8 @@ class MBTilesViewer:
         # Fenêtre tkinter : Taille et positionnement
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
-        width = int(screen_width * 0.8)
-        height = int(screen_height * 0.8)
+        width = int(screen_width * 0.85)
+        height = int(screen_height * 0.85)
         x = (screen_width - width) // 2
         y = (screen_height - height) // 2
         self.root.geometry(f"{width}x{height}+{x}+{y}")

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aide - KML Generator</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --primary: #1d4ed8;
+      --primary-dark: #1e3a8a;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #dbe3ef;
+      --code: #eff6ff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.6;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      padding: 42px 28px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0 0 10px;
+      font-size: 2.2rem;
+    }
+
+    header p {
+      margin: 0;
+      opacity: 0.92;
+      font-size: 1.05rem;
+    }
+
+    main {
+      max-width: 1300px;
+      width: min(98%, 1300px);
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    nav {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin-bottom: 22px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    }
+
+    nav a {
+      display: inline-block;
+      margin: 6px 14px 6px 0;
+      color: var(--primary);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 22px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    }
+
+    h2 {
+      margin-top: 0;
+      color: var(--primary-dark);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    h3 {
+      color: var(--primary-dark);
+      margin-bottom: 6px;
+    }
+
+    ul, ol {
+      padding-left: 24px;
+    }
+
+    li {
+      margin: 7px 0;
+    }
+
+    code {
+      background: var(--code);
+      color: var(--primary-dark);
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: Consolas, Monaco, monospace;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .tile {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      background: #fbfdff;
+    }
+
+    .note {
+      border-left: 4px solid var(--primary);
+      background: #eff6ff;
+      padding: 12px 14px;
+      border-radius: 8px;
+      color: var(--primary-dark);
+    }
+
+    .section-image {
+      width: 100%;
+      height: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .image-gallery {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(240px, 1fr));
+      gap: 12px;
+      margin: 18px 0;
+      align-items: start;
+    }
+
+    .image-gallery img {
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .image-caption {
+      display: block;
+      margin: 8px 0 18px 0;
+      font-size: 0.96rem;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .section-image + .image-caption {
+      margin-top: 8px;
+    }
+
+    .clearfix::after {
+      content: "";
+      display: table;
+      clear: both;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      padding: 20px 28px 34px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Aide - GEoLink</h1>
+    <p>Guide rapide d'utilisation pour les cartes, points, lignes, polygones et imports/exports.</p>
+  </header>
+
+  <main>
+    <nav>
+      <a href="#navigation">Navigation</a>
+      <a href="#menu">Menu</a>
+      <a href="#points">Onglet Points</a>
+      <a href="#lignes">Onglet Lignes</a>
+      <a href="#polygones">Onglet Polygones</a>
+      <a href="#import-export">Import / Export</a>
+      <a href="#foreflight">ForeFlight</a>
+    </nav>
+
+    <section id="navigation">
+      <h2>Gestion de la carte</h2>
+      <p>Utilisez les commandes suivantes pour naviguer et manipuler la carte :</p>
+      <ul>
+        <li><strong>Clic gauche maintenu + déplacement de la souris</strong> : déplacement de la carte.</li>
+        <li><strong>Molette</strong> : zoom avant / zoom arrière.</li>
+      </ul>
+    </section>
+
+    <section id="menu">
+      <h2>Menu</h2>
+      <ul>
+        <li><strong>Cartes</strong> :
+          <ul>
+            <li><code>Charger cartes mbtiles</code> : permet de charger une carte au format <code>.mbtiles</code>.</li>
+          </ul>
+        </li>
+        <li><strong>Importer</strong> :
+          <ul>
+            <li><code>Importer fichier KML</code> : permet d'importer un fichier KML.</li>
+            <li><code>Importer fichier CSV</code> : permet d'importer un fichier CSV possédant les champs <code>Name</code> et <code>Lat,Lon</code> exprimés en degrés décimaux.</li>
+          </ul>
+        </li>
+        <li><strong>Exporter</strong> :
+          <ul>
+            <li><code>Exporter vers SDVFR</code> : permet d'exporter les objets sélectionnés vers SDVFR, pas de prise en compte des champs taille, couleur et type de point.</li>
+            <li><code>Exporter vers Foreflight</code> : permet d'exporter les objets sélectionnés vers ForeFlight avec prise en compte des champs taille, couleur et type de point.</li>
+          </ul>
+        </li>
+        <li><strong>Aide</strong> :
+          <ul>
+            <li><code>Fichier d'aide</code> : permet d'ouvrir le fichier d'aide au format HTML dans un navigateur.</li>
+            <li><code>Masquer Tooltips</code> : permet de masquer les tooltips qui apparaissent au survol de la souris de certains champs.</li>
+          </ul>
+        </li>
+      </ul>
+    </section>
+
+    <section id="points" class="clearfix">
+      <h2>Onglet Points</h2>
+      <div class="image-gallery">
+        <img src="Images/Onglet Points.jpg" alt="Onglet Points">
+        <img src="Images/Onglet Points 2.jpg" alt="Onglet Points 2">
+        <img src="Images/Onglet Points 3.jpg" alt="Onglet Points 3">
+      </div>
+      <h3>Création de points</h3>
+      <p>Le premier cadre permet de sélectionner le type de création de point :</p>
+      <ul>
+        <li><strong>Coordonnées</strong> : permet de créer un point manuellement en entrant ses coordonnées en choisissant le format dans le menu déroulant.</li>
+        <li><strong>Radial Distance</strong> : permet de créer un point en entrant une distance et un angle depuis un point de référence choisi dans le menu déroulant.</li>
+        <li><strong>Tracé sur la carte</strong> : permet de créer un point en utilisant <code>MAJ + Clic Gauche</code> directement sur la carte.</li>
+      </ul>
+
+      <h3>Personnalisation</h3>
+      <p>Le second cadre permet de personnaliser le point :</p>
+      <ul>
+        <li><strong>Nom</strong> : permet de donner un nom au point.</li>
+        <li><strong>Taille</strong> : permet de choisir la taille du point (utilisé uniquement par ForeFlight). Une valeur de 1 correspond à la taille par défaut dans ForeFlight. Une taille de 0,7 (70%) est recommandée pour l'export.</li>
+        <li><strong>Couleur du label</strong> : permet de choisir la couleur du label dans lequel s'affiche le nom du point (utilisé uniquement par ForeFlight).</li>
+        <li><strong>Type</strong> : permet de choisir le type de point (utilisé uniquement par ForeFlight).</li>
+        <li><strong>Couleur</strong> : permet de choisir la couleur du point (utilisé uniquement par ForeFlight).</li>
+        <li><strong>Latitude</strong> : permet de choisir la latitude du point.</li>
+        <li><strong>Longitude</strong> : permet de choisir la longitude du point.</li>
+        <li><strong>Créer le point</strong> : crée le point avec les paramètres sélectionnés.</li>
+      </ul>
+
+      <h3>Liste des points</h3>
+      <p>Le troisième cadre permet de lister l'ensemble des points créés :</p>
+      <ul>
+        <li>La case à cocher permet de sélectionner le point pour effacement ou export.</li>
+        <li><strong>Select All</strong> permet de sélectionner tous les points.</li>
+        <li><strong>Deselect All</strong> permet de désélectionner tous les points.</li>
+        <li><strong>Delete</strong> permet d'effacer les points sélectionnés.</li>
+        <li>Cliquer sur le nom d'un point permet de mettre à jour les champs avec ses paramètres et bascule dans la page coordonnées en degrés. Les champs peuvent ensuite être modifiés et un nouvel appui sur le bouton <strong>Créer le point</strong> mettra à jour le point.</li>
+        <li>Double-cliquer sur le nom du point centre la carte sur le point.</li>
+      </ul>
+    </section>
+
+    <section id="lignes" class="clearfix">
+      <h2>Onglet Lignes</h2>
+      <div class="image-gallery">
+        <img src="Images/Onglet Lignes.jpg" alt="Onglet Lignes">
+        <img src="Images/Onglet Lignes 2.jpg" alt="Onglet Lignes 2">
+      </div>
+      <h3>Création par sélection de points</h3>
+      <p><strong>4.1.1</strong> : permet de créer une ligne en sélectionnant des points dans la liste des points créés.</p>
+      <ul>
+        <li>Sélectionner un point dans la boîte <code>Points</code> et ajouter à la ligne via le bouton <code>>></code>.</li>
+        <li>Possibilité de retirer un point de la ligne via le bouton <code><<</code>.</li>
+        <li>Une fois les points transférés vers la boîte <code>Ligne</code>, il est possible de les réordonner via <code>Click Gauche</code> et déplacement à la souris.</li>
+      </ul>
+
+      <h3>Création sur la carte</h3>
+      <p><strong>4.1.2</strong> : permet de créer la ligne en la dessinant directement sur la carte.</p>
+      <ul>
+        <li><code>SHIFT + CLIC GAUCHE</code> permet de créer un nouveau point sur la carte.</li>
+        <li><code>SHIFT + CLIC DROIT</code> efface le dernier point ajouté.</li>
+        <li><code>CLIC GAUCHE</code> maintenu sur la ligne permet de la translater sur la carte.</li>
+        <li><code>SHIFT + CLIC GAUCHE</code> sur un point existant permet de le sélectionner et de le déplacer.</li>
+      </ul>
+      <p>Le champ <strong>Longueur totale</strong> affiche la longueur totale de la ligne en mètres ou nautiques.</p>
+      <p>Le champ <strong>Longueur segment</strong> affiche la longueur du dernier segment ajouté en mètres ou nautiques.</p>
+      <p>Le champ <strong>Gisement dernier segment</strong> affiche le gisement du dernier segment ajouté en degrés.</p>
+
+      <h3>Paramètres après tracé</h3>
+      <ul>
+        <li><strong>Nom</strong> : permet de donner un nom à la ligne.</li>
+        <li><strong>Épaisseur de la ligne</strong> : permet de choisir l'épaisseur de la ligne (6 conseillé pour ForeFlight).</li>
+        <li><strong>Couleur</strong> : permet de choisir la couleur de la ligne.</li>
+        <li>L'appui sur le bouton <strong>Créer la ligne</strong> crée la ligne avec les paramètres sélectionnés.</li>
+      </ul>
+
+      <h3>Gestion des lignes</h3>
+      <ul>
+        <li><strong>Select All</strong> permet de sélectionner toutes les lignes.</li>
+        <li><strong>Deselect All</strong> permet de désélectionner toutes les lignes.</li>
+        <li><strong>Delete</strong> permet d'effacer les lignes sélectionnées.</li>
+        <li>Double-clic sur le nom de la ligne centre la carte sur la ligne.</li>
+        <li><strong>CLIC GAUCHE</strong> sur la case à cocher sélectionne la ligne pour effacement ou export.</li>
+      </ul>
+    </section>
+
+    <section id="polygones" class="clearfix">
+      <h2>Onglet Polygones</h2>
+      <div class="image-gallery">
+        <img src="Images/Onglet Polygones.jpg" alt="Onglet Polygones">
+        <img src="Images/Onglet Polygones 2.jpg" alt="Onglet Polygones 2">
+        <img src="Images/Onglet Polygones 3.jpg" alt="Onglet Polygones 3">
+        <img src="Images/Onglet Polygones 4.jpg" alt="Onglet Polygones 4">
+      </div>
+      <h3>Création par sélection de points</h3>
+      <p><strong>5.1.1</strong> : permet de créer un polygone en sélectionnant des points dans la liste des points créés.</p>
+      <ul>
+        <li>Sélectionner un point dans la boîte <code>Points</code> et ajouter au polygone via le bouton <code>>></code>.</li>
+        <li>Possibilité de retirer un point du polygone via le bouton <code><<</code>.</li>
+        <li>Une fois les points transférés vers la boîte <code>Polygone</code>, il est possible de les réordonner via <code>Click Gauche</code> et déplacement à la souris.</li>
+      </ul>
+
+      <h3>Création sur la carte</h3>
+      <p><strong>5.1.2</strong> : permet de créer le polygone en le dessinant directement sur la carte.</p>
+      <ul>
+        <li><code>SHIFT + CLIC GAUCHE</code> permet de créer un nouveau point sur la carte.</li>
+        <li><code>SHIFT + CLIC DROIT</code> efface le dernier point ajouté.</li>
+        <li><code>CLIC GAUCHE</code> maintenu sur la ligne permet de la translater sur la carte.</li>
+        <li><code>SHIFT + CLIC GAUCHE</code> sur un point existant permet de le sélectionner et de le déplacer.</li>
+      </ul>
+      <p>Le champ <strong>Longueur segment</strong> affiche la longueur du dernier segment ajouté en mètres ou nautiques.</p>
+      <p>Le champ <strong>Gisement dernier segment</strong> affiche le gisement du dernier segment ajouté en degrés.</p>
+
+      <h3>Création d'un rectangle</h3>
+      <ul>
+        <li>Choisir dans la liste des points le centre du rectangle.</li>
+        <li>Sélectionner une largeur et une longueur en mètres ou nautiques.</li>
+        <li>Sélectionner une orientation en degrés.</li>
+        <li>Ajouter une flèche indiquant graphiquement la direction du rectangle.</li>
+      </ul>
+
+      <h3>Création d'un cercle</h3>
+      <ul>
+        <li>Choisir dans la liste des points le centre du cercle.</li>
+        <li>Sélectionner un rayon en mètres ou nautiques.</li>
+        <li>Sélectionner le nombre de segments pour tracer le cercle.</li>
+        <li>La case à cocher <strong>Arc de cercle</strong> permet de créer un arc de cercle au lieu d'un cercle complet.</li>
+        <li>Choisir l'angle de départ.</li>
+        <li>Choisir l'angle d'arrivée.</li>
+        <li>La case à cocher <strong>Relier au centre</strong> permet de tracer l'arc de cercle en reliant les extrémités au centre.</li>
+      </ul>
+
+      <h3>Paramètres après tracé</h3>
+      <ul>
+        <li><strong>Nom</strong> : permet de donner un nom au polygone.</li>
+        <li><strong>Épaisseur de la ligne</strong> : permet de choisir l'épaisseur de la ligne (6 conseillé pour ForeFlight).</li>
+        <li><strong>Couleur du contour</strong> : permet de choisir la couleur de la ligne.</li>
+        <li><strong>Couleur du remplissage</strong> : permet de choisir la couleur du remplissage.</li>
+        <li>L'appui sur le bouton <strong>Créer le polygone</strong> crée le polygone avec les paramètres sélectionnés.</li>
+      </ul>
+
+      <h3>Gestion des polygones</h3>
+      <ul>
+        <li><strong>Select All</strong> permet de sélectionner tous les polygones.</li>
+        <li><strong>Deselect All</strong> permet de désélectionner tous les polygones.</li>
+        <li><strong>Delete</strong> permet d'effacer les polygones sélectionnés.</li>
+        <li>Double-clic sur le nom du polygone centre la carte sur le polygone.</li>
+        <li><strong>CLIC GAUCHE</strong> sur la case à cocher sélectionne le polygone pour effacement ou export.</li>
+      </ul>
+    </section>
+
+    <section id="import-export">
+      <h2>Import / Export</h2>
+      <h3>Importer fichier KML</h3>
+      <p>Permet d'importer un fichier KML.</p>
+      <h3>Importer fichier CSV</h3>
+      <p>Permet d'importer un fichier CSV possédant les champs <code>Name</code> et <code>Lat,Lon</code> exprimés en degrés décimaux.</p>
+      <div class="note">
+        Exemple de structure de fichier CSV pour l'import :
+      </div>
+      <table style="width:100%; border-collapse: collapse; margin-top: 12px;">
+        <thead>
+          <tr>
+            <th style="border: 1px solid var(--border); padding: 10px; text-align:left; background:#eff6ff;">Name</th>
+            <th style="border: 1px solid var(--border); padding: 10px; text-align:left; background:#eff6ff;">Lat</th>
+            <th style="border: 1px solid var(--border); padding: 10px; text-align:left; background:#eff6ff;">Lon</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="border: 1px solid var(--border); padding: 10px;">Point A</td>
+            <td style="border: 1px solid var(--border); padding: 10px;">44.123456</td>
+            <td style="border: 1px solid var(--border); padding: 10px;">-1.234567</td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid var(--border); padding: 10px;">Point B</td>
+            <td style="border: 1px solid var(--border); padding: 10px;">43.987654</td>
+            <td style="border: 1px solid var(--border); padding: 10px;">-1.543210</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>Exporter vers SDVFR</h3>
+      <p>Permet d'exporter les objets sélectionnés vers SDVFR, pas de prise en compte des champs taille, couleur et type de point.</p>
+      <h3>Exporter vers ForeFlight</h3>
+      <p>Permet d'exporter les objets sélectionnés vers ForeFlight avec prise en compte des champs taille, couleur et type de point.</p>
+      <p>Les fichiers KML permettent d'exporter des points, des lignes et des polygones.</p>
+      <p>Les fichiers CSV permettent d'exporter uniquement des points.</p>
+    </section>
+
+    <section id="foreflight">
+      <h2>Export ForeFlight</h2>
+      <p>Pour un export ForeFlight, utiliser le nom de fichier <code>user_waypoints.csv</code>.</p>
+      <p>Les exports ForeFlight prennent en compte les champs taille, couleur et type de point lorsque ces informations sont disponibles.</p>
+      <p>Structure d'export recommandée :</p>
+      <p><code>WAYPOINT_NAME, Waypoint description, Latitude, Longitude, Elevation</code></p>
+      <div class="note">
+        Exemple de ligne CSV ForeFlight :
+      </div>
+      <table style="width:100%; border-collapse: collapse; margin-top: 12px;">
+        <thead>
+          <tr>
+            <th style="border: 1px solid var(--border); padding: 10px; text-align:left; background:#eff6ff;">WAYPOINT_NAME</th>
+            <th style="border: 1px solid var(--border); padding: 10px; text-align:left; background:#eff6ff;">Waypoint description</th>
+            <th style="border: 1px solid var(--border); padding: 10px; text-align:left; background:#eff6ff;">Latitude</th>
+            <th style="border: 1px solid var(--border); padding: 10px; text-align:left; background:#eff6ff;">Longitude</th>
+            <th style="border: 1px solid var(--border); padding: 10px; text-align:left; background:#eff6ff;">Elevation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="border: 1px solid var(--border); padding: 10px;">POINT_A</td>
+            <td style="border: 1px solid var(--border); padding: 10px;">Exemple de waypoint</td>
+            <td style="border: 1px solid var(--border); padding: 10px;">44.123456</td>
+            <td style="border: 1px solid var(--border); padding: 10px;">-1.234567</td>
+            <td style="border: 1px solid var(--border); padding: 10px;">0</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>
+    KML Generator - Aide locale
+  </footer>
+</body>
+</html>

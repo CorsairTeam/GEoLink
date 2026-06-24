@@ -1,0 +1,128 @@
+1 : Gestion de la carte:
+    - clic gauche maintenu + déplacement de la souris= déplacement de la carte
+    - molette = zoome /dezoome
+
+
+
+2 : Menu:
+    Cartes : 
+        - Charger cartes mbtiles : Permet de charger une carte au format .mbtiles
+    Importer : 
+        - Importer fichier KML : Permet d'importer un fichier KML
+        - Importer fichier CSV : Permet d'importer un fichier CSV possédant les champs "Name" et "Lat,Lon" exprimés en degrés décimaux
+    Exporter : 
+        - Exporter vers SDVFR : Permet d'exporter les objets sélectionnés vers SDVFR, pas de prise en compte des champs taille, couleur et type de point
+        - Exporter vers Foreflight : Permet d'exporter les objets sélectionnés vers Foreflight avec prise en compte des champs taille, couleur et type de point.
+        Les fichiers KML permettent d'exportes des points, des lignes et des polygones.
+        Les fichiers CSV permettent d'exporter uniquement des points.
+
+    Aide:
+        - Fichier d'aide : Permet d'ouvrir le fichier d'aide au format html dans un navigateur.
+        - Masquer Tooltips : Permet de masquer les tooltips qui apparaissent au survol de la souris de certains champs.
+
+
+
+
+3 : Onglet Points:
+
+    Le premier cadre permet de selection le type de création de point.
+        - Le choix "Coordonnées" permet de créer un point manuellement en entrant ses coordonnées en choisissant le format dans le menu déroulant.
+        - Le choix "Radial Distance" permet de créer un point en entrant une distance et un angle depuis un point de référence choisi dans le menu déroulant.
+        - Le choix "Tracé sur la carte" permet de créer un point en utilisant "MAJ + Clic Gauche" directement sur la carte.
+
+    Le second cadre permet de personnaliser le point:
+        - "Nom" permet de donner un nom au point.
+        - "Taille" permet de choisir la taille du point (utilisé uniquement par Foreflight). Une valeur de 1 correspond à la taille par défaut dans Forefligh. Une taile de 0.7 (70%) est recommandée pour l'export.
+        - "Couleur du label" permet de choisir la couleur du label dans lequel s'affiche le nom du point (utilisé uniquement par Foreflight).
+        - "Type" permet de choisir le type de point (utilisé uniquement par Foreflight).
+        - "Couleur" permet de choisir la couleur du point (utilisé uniquement par Foreflight).
+        - "Latitude" permet de choisir la latitude du point.
+        - "Longitude" permet de choisir la longitude du point.
+        - Le bouton "Créer le point" crée le point avec les paramètres sélectionnés.
+
+
+    Le troisième cadre permet de lister l'ensemble des points créés:
+        - La case à cocher permet de selectionner le point pour effacement ou export.
+        - Le bouton "Select All" permet de sélectionner tous les points.
+        - Le bouton "Deselect All" permet de désélectionner tous les points.
+        - Le bouton "Delete" permet d'effacer les points sélectionnés.
+        - Cliquer sur le nom d'un point permet de mettre à jour les champs avec ses paramètres et bascule dans la page coordonnées en degrés. Les champs peuvent ensuite être modifiés et un nouvel appui sur le bouton "Créer le point" mettra à jour le point.
+        - Double-cliquer sur le nom du point centre la carte sur le point.
+
+
+4 : Onglet Lignes:
+
+    4.1.1 "Création par sélection de points" permet de créer une ligne en sélectionnant des points dans la liste des points créés.
+        - Selectionner un point dans la boite Points et ajouter à la ligne via le bouton ">>".
+        - Possibilite de retirer un point de la ligne via le bouton "<<".
+        - Une fois les points transferer vers la boite Ligne, il est possible de les réordonner via 'Click Gauche' et déplacement à la souris.
+        - 
+    4.1.2 "Création sur la carte" permet de creér la ligne en la dessinant directement sur la carte
+        - 'SHIFT + CLIC GAUCHE' permet de creer un nouveau point sur la carte
+        - 'SHIFT + CLIC DROIT' efface le dernier point ajouté
+        - 'CLIC GAUCHE' maintenu sur la ligne permet de la translater sur la carte
+        - 'SHIFT + CLIC GAUCHE' sur un point existant permet de le sélectionner et de le déplacer
+        
+        Le champs "Longueur totale" affiche la longueur totale de la ligne en mètres ou nautiques.
+        Le champ "Longueur segment" affiche la longueur du dernier segment ajouté en mètres ou nautiques.
+        Le champ "Gisement dernier segment" affiche le gisement du dernier segment ajouté en degrés.
+    
+    4.2 Une fois la ligne dessinée:
+        "Nom" permet de donner un nom à la ligne.
+        "Epaisseur de la ligne" permet de choisir l'épaisseur de la ligne.(6 conseillé pour Foreflight)
+        "Couleur" permet de choisir la couleur de la ligne.
+        L'appuie sur le bouton "Créer la ligne" crée la ligne avec les paramètres sélectionnés.
+
+    4.3 Une fois la ligne créée:
+        - Le bouton "Select All" permet de sélectionner toutes les lignes.
+        - Le bouton "Deselect All" permet de désélectionner toutes les lignes.
+        - Le bouton "Delete" permet d'effacer les lignes sélectionnées.
+        - Double-cliquer sur le nom de la ligne centre la carte sur la ligne.
+        - CLIC GAUCHE sur la case à cocher selectionne la ligne pour effacement ou export.
+    
+
+5 : Onglet Polygones:
+    5.1.1 "Création par sélection de points" permet de créer un polygone en sélectionnant des points dans la liste des points créés.
+        - Selectionner un point dans la boite Points et ajouter au polygone via le bouton ">>".
+        - Possibilite de retirer un point du polygone via le bouton "<<".
+        - Une fois les points transferer vers la boite Polygone, il est possible de les réordonner via 'Click Gauche' et déplacement à la souris.
+        - 
+    5.1.2 "Création sur la carte" permet de creér la ligne en la dessinant directement sur la carte
+        - 'SHIFT + CLIC GAUCHE' permet de creer un nouveau point sur la carte
+        - 'SHIFT + CLIC DROIT' efface le dernier point ajouté
+        - 'CLIC GAUCHE' maintenu sur la ligne permet de la translater sur la carte
+        - 'SHIFT + CLIC GAUCHE' sur un point existant permet de le sélectionner et de le déplacer
+       
+        Le champ "Longueur segment" affiche la longueur du dernier segment ajouté en mètres ou nautiques.
+        Le champ "Gisement dernier segment" affiche le gisement du dernier segment ajouté en degrés.
+
+    5.1.3 "Création d'un rectangle" permet de créer un rectangle
+        - Choisir dans la liste des points le centre du rectangle.
+        - Selectionner une largeur et une longueur en mètres ou nautiques.
+        - Selectionner une orientation en degrés.
+        - Ajouter une flèche indiquant graphiquement la direction du rectangle.
+
+    5.1.4 "Création d'un cercle" permet de créer un cercle
+        - Choisir dans la liste des points le centre du cercle.
+        - Selectionner un rayon en mètres ou nautiques.
+        - Selectionner le nombre de segments pour tracer le cercle.
+
+        La case a cocher "Arc de cercle" permet de créer un arc de cercle au lieu d'un cercle complet.
+        - Choisir l'angle de départ
+        - Choisir l'angle d'arrivée
+        
+        La case a cocher "Relier au centre" permet de tracer l'arc de cercle en reliant les extrémités au centre.
+    
+    5.2 Une fois la ligne dessinée:
+        - "Nom" permet de donner un nom à la ligne.
+        - "Epaisseur de la ligne" permet de choisir l'épaisseur de la ligne.(6 conseillé pour Foreflight)
+        - "Couleur du contour" permet de choisir la couleur de la ligne.
+        - "Couleur du remplissage" permet de choisir la couleur du remplissage.
+        - L'appuie sur le bouton "Créer le polygone" crée le polygone avec les paramètres sélectionnés.
+
+    5.3 Une fois le polygone créé:
+        - Le bouton "Select All" permet de sélectionner tous les polygones.
+        - Le bouton "Deselect All" permet de désélectionner tous les polygones.
+        - Le bouton "Delete" permet d'effacer les polygones sélectionnés.
+        - Double-cliquer sur le nom du polygone centre la carte sur le polygone.
+        - CLIC GAUCHE sur la case à cocher selectionne le polygone pour effacement ou export.

@@ -248,8 +248,6 @@ def enable_line_points_drag_reorder(viewer,listbox):
     listbox.bind("<B1-Motion>", drag_motion)
     listbox.bind("<ButtonRelease-1>", stop_drag)
 
-
-
 class ToolTip:
     """Classe pour créer des info-bulles (tooltips) sur les widgets"""
     enabled = True
@@ -260,26 +258,15 @@ class ToolTip:
         self.text = text
         self.tooltip_window = None
         ToolTip.instances.append(self)
-        # Si aucun widget n'est fourni ou si le widget n'a pas de méthode bind,
-        # ne pas tenter d'attacher les handlers (évite l'AttributeError)
-        if self.widget is None or not hasattr(self.widget, 'bind'):
-            return
-        try:
-            self.widget.bind("<Enter>", self.show_tooltip)
-            self.widget.bind("<Leave>", self.hide_tooltip)
-        except Exception:
-            # En cas d'erreur d'attachement, ignorer silencieusement
-            return
+        self.widget.bind("<Enter>", self.show_tooltip)
+        self.widget.bind("<Leave>", self.hide_tooltip)
     
     @classmethod
     def set_enabled(cls, enabled):
         cls.enabled = enabled
         if not enabled:
             for tooltip in cls.instances:
-                try:
-                    tooltip.hide_tooltip()
-                except Exception:
-                    pass
+                tooltip.hide_tooltip()
                 
     
     def show_tooltip(self, event=None):
@@ -365,9 +352,68 @@ def point_field_fill(viewer, item):
         viewer.lon_entry.delete(0, tk.END)
         viewer.lon_entry.insert(0, f"{lon:g}")
 
+def line_field_fill(viewer, item):
+    """Remplit les champs de la ligne cliquée dans le Tree view."""
+
+    data = viewer.lines_checked_items[item]["data"]
+
+    try:
+        coordinates_list = data[3].split()
+        if coordinates_list and viewer.db_path:
+            first_point = coordinates_list[0].split(',')
+            if len(first_point) >= 2:
+                lon = float(first_point[0])
+                lat = float(first_point[1])
+                viewer.mbtiles_manager.center_map_on_point(lat, lon)
+    except Exception as e:
+        print(f"Erreur lors du centrage sur la ligne: {e}")
+
+    if hasattr(viewer, "line_name_entry"):
+        viewer.line_name_entry.delete(0, tk.END)
+        viewer.line_name_entry.insert(0, data[0])
+
+    if hasattr(viewer, "taille_entry"):
+        viewer.taille_entry.set(str(data[2]))
+
+    if hasattr(viewer, "line_color_entry"):
+        viewer.line_color_entry.set(data[1])
+
+def polygon_field_fill(viewer, item):
+    """Remplit les champs du polygone cliqué dans le Tree view."""    
+
+    data = viewer.polygones_checked_items[item]["data"]          
+
+    #Centrage de la carte sur le polygone sélectionné
+    try:
+        coordinates_list = data[5].split()
+        if coordinates_list and viewer.db_path:
+            first_point = coordinates_list[0].split(',')
+            if len(first_point) >= 2:
+                lon = float(first_point[0])
+                lat = float(first_point[1])
+                viewer.mbtiles_manager.center_map_on_point(lat, lon)
+    except Exception as e:
+        print(f"Erreur lors du centrage sur le polygone: {e}")
+
+    #Mise a jour des champs
+    if hasattr(viewer, "polygone_name_entry"):
+        viewer.polygone_name_entry.delete(0, tk.END)
+        viewer.polygone_name_entry.insert(0, data[0])
+
+    if hasattr(viewer, "taille_entry"):
+        viewer.taille_entry.set(str(data[2]))
+
+    if hasattr(viewer, "line_color_entry"):
+        viewer.line_color_entry.set(data[1])
+
+    if hasattr(viewer, "fill_color_entry"):
+        viewer.fill_color_entry.set(data[4])
+
+    if hasattr(viewer, "polygone_fill_var"):
+        viewer.polygone_fill_var.set(1 if data[3] in (1, True, "1", "True", "true") else 0)
 
 def on_tree_click(viewer, event, checked_items, treeview):
-    """En fonctiondu clic, coche la case ou remplit les champs de Input_frame"""
+    """En fonction du clic, coche la case ou remplit les champs de Input_frame"""
     region = treeview.identify_region(event.x, event.y)
     if region == "cell":
         item = treeview.identify_row(event.y)
@@ -377,7 +423,13 @@ def on_tree_click(viewer, event, checked_items, treeview):
             toggle_checkbox(item, checked_items, treeview)
 
         if column == "#2" and item in checked_items and checked_items is viewer.points_checked_items:
-            point_field_fill(viewer, item)        
+            point_field_fill(viewer, item)
+
+        if column == "#2" and item in checked_items and checked_items is viewer.lines_checked_items and viewer.ligne_modif_var.get():
+            line_field_fill(viewer, item)
+
+        if column == "#2" and item in checked_items and checked_items is viewer.polygones_checked_items and viewer.polygone_modif_var.get():
+            polygon_field_fill(viewer, item)
 
 def toggle_checkbox(item, checked_items, treeview):
     """Gère le cochage/décochage de la coche du Treeview"""

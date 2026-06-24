@@ -273,6 +273,16 @@ def fill_input_frame_polygones(viewer):
     viewer.polygone_fill_radio = ttk.Checkbutton(viewer.polygones_input_frame, text="Remplir", variable=viewer.polygone_fill_var)
     viewer.polygone_fill_radio.grid(row=4, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5)
 
+    # #  Modifier
+    # viewer.polygone_modif_var = tk.IntVar()
+    # viewer.polygone_modif_radio = ttk.Checkbutton(viewer.polygones_input_frame, text="Modifier", variable=viewer.polygone_modif_var)
+    # viewer.polygone_modif_radio.grid(row=5, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5)
+    # ToolTip(viewer.polygone_modif_radio, "● Clic sur la case à cocher pour passer en mode modification\n"
+    #                                "● Sélectionner un polygone dans le tableau pour le modifier\n"                                   
+    #                                "● Modifier les champs du polygone sélectionnée\n"
+    #                                "● Cliquer sur le bouton 'Créer le polygone' pour valider")  
+
+
     # Bouton créer
     tk.Button(
         viewer.polygones_input_frame,
@@ -308,6 +318,10 @@ def update_onglet_polygones(viewer):
     # Charge les polygones dans le treeview et rafraichie la carte
 
     database.load_item_treeview(viewer,"polygones.db",viewer.polygones_checked_items,viewer.polygones_tree,"polygons")
+
+    # Réinitialiser les points cliqués et la ligne temporaire
+    viewer.clicked_points = []
+    viewer.mbtiles_manager.clear_temp_line()
     
 def create_treeview_polygones(viewer):
     
@@ -383,8 +397,10 @@ def create_mode_creation_polygone(viewer):
         command=lambda: update_onglet_polygones(viewer),
     )
     polygone_carte_radiobutton.grid(row=1, column=0, padx=5, pady=5)
-    utility.ToolTip(polygone_carte_radiobutton, "● Shift + Clic Gauche pour générer un point sur la carte.\n"
-                                                "● Shift + Clic Droit pour effacer le dernier point.")
+    utility.ToolTip(polygone_carte_radiobutton,"● SHIFT + CLIC GAUCHE pour générer un point sur la carte.\n"
+                                            "● SHIFT + CLIC DROIT pour effacer le dernier point.\n"
+                                            "● CLIC GAUCHE MAINTENU sur le polygone pour le translater sur la carte.\n"
+                                            "● SHIFT + CLIC GAUCHE MAINTENU sur un point existant pour le déplacer.")
 
 
 
@@ -409,6 +425,7 @@ def create_mode_creation_polygone(viewer):
 def setup_polygones_tabs(viewer):
     # Variable pour récuperer les choix de l'utilisateur ouverture par defaut "coordonnees/Degrés"
     viewer.polygone_creation_mode = tk.StringVar(value="points")
+    viewer.polygone_modif_var = tk.IntVar(value=0)
 
     # Variable tracage des cases cochées
     viewer.polygones_checked_items = {}
