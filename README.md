@@ -4,7 +4,8 @@ Un outil d'automatisation et de cartographie permettant de générer et d'export
 
 ## 🚀 Téléchargement / Download
 
-> **Pour les utilisateurs non-développeurs :** > Téléchargez la version prête à l'emploi (compilée pour Windows) directement **[en cliquant ici (Dernière Release)](https://github.com/FantomasLeader/GeoLink/releases/latest)**.  
+> **Pour les utilisateurs non-développeurs :**  
+> Téléchargez la version prête à l'emploi (compilée pour Windows) directement **[en cliquant ici (Dernière Release)](https://github.com/CorsairTeam/GeoLink/releases/latest)**.  
 > *Pas besoin de compiler le code, décompressez le programme et lancez le fichier main.exe !*
 
 ## ✨ Fonctionnalités
@@ -23,7 +24,7 @@ Si vous préférez exécuter le script directement depuis les sources ou le comp
 ### Installation
 ```bash
 # Cloner le projet
-git clone https://github.com/FantomasLeader/GeoLink.git
+git clone [https://github.com/FantomasLeader/GeoLink.git](https://github.com/FantomasLeader/GeoLink.git)
 cd GeoLink
 
 # Installer les dépendances
