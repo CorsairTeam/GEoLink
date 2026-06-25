@@ -5,7 +5,7 @@ Un outil d'automatisation et de cartographie permettant de générer et d'export
 ## 🚀 Téléchargement / Download
 
 > **Pour les utilisateurs non-développeurs :**  
-> Téléchargez la version prête à l'emploi (compilée pour Windows) directement **[en cliquant ici (Dernière Release)](https://github.com/FantomasLeader/GeoLink/releases/latest)**.  
+> Téléchargez la version prête à l'emploi (compilée pour Windows) directement **[en cliquant ici (Dernière Release)](https://github.com/CorsairTeam/GeoLink/releases/latest)**.  
 > *Pas besoin de compiler le code, décompressez le programme et lancez le fichier main.exe !*
 
 ## ✨ Fonctionnalités
