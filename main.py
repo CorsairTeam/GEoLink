@@ -1,8 +1,9 @@
 import os
 import sys
 import webbrowser
-import tkinter as tk
-from tkinter import Menu, ttk
+from tkinter import Tk, Frame, Canvas, DoubleVar, TOP, BOTH, LEFT, RIGHT, Y, GROOVE
+from tkinter import Menu
+from tkinter import ttk
 from mbtiles_manager import MbtilesManager
 import database
 import notebook_points
@@ -105,17 +106,17 @@ class MBTilesViewer:
         """Crée l'interface utilisateur"""
 
         # Création du cadre principal
-        self.main_frame = tk.Frame(self.root)
-        self.main_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        self.main_frame = Frame(self.root)
+        self.main_frame.pack(side=TOP, fill=BOTH, expand=True)
 
         # Création du notebook (côté gauche) contenant les onglets
         self.notebook = ttk.Notebook(self.main_frame, width=350)
-        self.notebook.pack(side=tk.LEFT, fill=tk.Y, padx=(5, 2), pady=(5, 5))  # Padding pour éviter le chevauchement
+        self.notebook.pack(side=LEFT, fill=Y, padx=(5, 2), pady=(5, 5))  # Padding pour éviter le chevauchement
         self.notebook.pack_propagate(False)
 
         # Création du canvas (côté droit) pour l'affichage des cartes
-        self.canvas = tk.Canvas(self.main_frame, bg="lightgray", relief=tk.GROOVE, borderwidth=2)
-        self.canvas.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(2, 5), pady=(5, 5))
+        self.canvas = Canvas(self.main_frame, bg="lightgray", relief=GROOVE, borderwidth=2)
+        self.canvas.pack(side=RIGHT, fill=BOTH, expand=True, padx=(2, 5), pady=(5, 5))
 
         # Création de l'onglet points du notebook
         notebook_points.setup_points_tabs(self)
@@ -129,9 +130,9 @@ class MBTilesViewer:
     def __init__(self, root):        
 
         #Variable : Position et altitude du hotspot Foreflight
-        self.hotspot_x = tk.DoubleVar(value=0.5)
-        self.hotspot_y = tk.DoubleVar(value=0.5) 
-        self.altitude = tk.DoubleVar(value=0.0)    
+        self.hotspot_x = DoubleVar(value=0.5)
+        self.hotspot_y = DoubleVar(value=0.5) 
+        self.altitude = DoubleVar(value=0.0)    
 
         # Fenêtre tkinter : Initialisation
         self.root = root        
@@ -192,7 +193,7 @@ class MBTilesViewer:
         self.root.protocol("WM_DELETE_WINDOW", lambda: database.database_closing(self))
 
 def main():
-    root = tk.Tk()
+    root = Tk()
     app = MBTilesViewer(root)
     root.mainloop()
 
