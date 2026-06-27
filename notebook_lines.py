@@ -91,15 +91,15 @@ def update_input_frame_lignes(viewer):
         viewer.line_last_segment_length_entry = tk.Entry(line_last_segment_length_frame, justify="center", state="readonly", width=12)
         viewer.line_last_segment_length_entry.grid(row=0, column=0, padx=(0, 12), sticky="w")
 
-        viewer.line_last_segment_length_combo = ttk.Combobox(
-            line_last_segment_length_frame,
-            justify="center",
-            values=["Nm", "m"],
-            width=5,
-            state="readonly",
-        )
-        viewer.line_last_segment_length_combo.grid(row=0, column=1, padx=(0, 2), sticky="w")
-        viewer.line_last_segment_length_combo.set("Nm")
+        # viewer.line_last_segment_length_combo = ttk.Combobox(
+        #     line_last_segment_length_frame,
+        #     justify="center",
+        #     values=["Nm", "m"],
+        #     width=5,
+        #     state="readonly",
+        # )
+        # viewer.line_last_segment_length_combo.grid(row=0, column=1, padx=(0, 2), sticky="w")
+        # viewer.line_last_segment_length_combo.set("Nm")
 
         # Gisement du dernier segment
         tk.Label(viewer.ligne_points_transfer_frame, text="Gisement du dernier segment :", width=25, anchor="w").grid(row=2, column=0, padx=5, pady=5)

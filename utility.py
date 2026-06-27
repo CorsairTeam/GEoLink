@@ -81,23 +81,28 @@ def calculate_arrow_points(center_lat, center_lon, length_km, bearing_deg, width
         (arrow_start_lon, arrow_start_lat)   # Retour au point de départ (fermeture)
     ]
 
-def calculate_rectangle_points(center_lat, center_lon, length_km, width_km, bearing_deg):
-    """Calcul de rectangles avec précision Vincenty"""
+def calculate_rectangle_points(center_lat, center_lon, length_forward_km, length_backward_km, length_right_km, length_left_km, bearing_deg):
+    """Calcul de rectangles avec précision Vincenty.
+
+    Les longueurs sont exprimées depuis le centre vers les côtés :
+    - length_forward_km : distance du centre vers l'avant, dans l'azimut bearing_deg
+    - length_backward_km : distance du centre vers l'arrière, dans l'azimut opposite
+    - length_right_km : distance du centre vers la droite
+    - length_left_km : distance du centre vers la gauche
+    """
     center_point = {"lat": center_lat, "lon": center_lon}
-    half_length_km = length_km / 2
-    half_width_km = width_km / 2
-    
+
     corners_local = [
-        (half_length_km, half_width_km),
-        (half_length_km, -half_width_km),
-        (-half_length_km, -half_width_km),
-        (-half_length_km, half_width_km)
+        (length_forward_km, length_right_km),
+        (length_forward_km, -length_left_km),
+        (-length_backward_km, -length_left_km),
+        (-length_backward_km, length_right_km)
     ]
     
     rectangle_points = []
 
     for x_local, y_local in corners_local:
-        dist_to_corner = math.sqrt(x_local**2 + y_local**2)
+        dist_to_corner = math.hypot(x_local, y_local)
         angle_relative = math.degrees(math.atan2(y_local, x_local))
         absolute_bearing = (bearing_deg + angle_relative) % 360
         

@@ -208,7 +208,7 @@ class MbtilesManager:
                     self.viewer.line_last_segment_length_entry.delete(0, tk.END)
 
                      #Longueur du dernier segment de la ligne en mètres ou en Nm
-                    if self.viewer.line_last_segment_length_combo.get() == "m":
+                    if self.viewer.line_length_combo.get() == "m":
                         self.viewer.line_last_segment_length_entry.insert(0, f"{last_seg_m:.0f}")
                     else:
                         self.viewer.line_last_segment_length_entry.insert(0, f"{last_seg_nm:.1f}")
