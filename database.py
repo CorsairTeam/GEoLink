@@ -159,35 +159,41 @@ def polygon_coordinates_rectangle_get(viewer):
         messagebox.showerror("Erreur", "Veuillez sélectionner un point centre")
         return
         
-    length_str = viewer.rectangle_length_entry.get().strip()
-    width_str = viewer.rectangle_width_entry.get().strip()
+    length_forward_str = viewer.rectangle_length_forward_entry.get().strip()
+    length_backward_str = viewer.rectangle_length_backward_entry.get().strip()
+    length_right_str = viewer.rectangle_length_right_entry.get().strip()
+    length_left_str = viewer.rectangle_length_left_entry.get().strip()
     orientation_str = viewer.rectangle_orientation_entry.get().strip() or "0"
     
-    if not length_str or not width_str:
-        messagebox.showerror("Erreur", "Veuillez entrer la longueur et la largeur")
+    if not length_forward_str or not length_backward_str or not length_right_str or not length_left_str:
+        messagebox.showerror("Erreur", "Veuillez entrer les longueurs de la boite")
         return
             
     try:
-        length = float(length_str)
-        width = float(width_str)
+        length_forward = float(length_forward_str)
+        length_backward = float(length_backward_str)
+        length_right = float(length_right_str)
+        length_left = float(length_left_str)
         orientation = float(orientation_str)
     except ValueError:
         messagebox.showerror("Erreur", "Valeurs numériques invalides")
         return
             
     # Convertir les unités en kilomètres si nécessaire
-    length_unit = viewer.rectangle_length_unit.get()
-    width_unit = viewer.rectangle_width_unit.get()
+    length_unit = viewer.rectangle_length_forward_unit.get()
+    
             
     if length_unit == "Nm":
-        length = length * 1.852  # Conversion miles nautiques vers km
+        length_forward = length_forward * 1.852  # Conversion miles nautiques vers km
+        length_backward = length_backward * 1.852
+        length_right = length_right * 1.852
+        length_left = length_left * 1.852
     elif length_unit == "m":
-        length = length / 1000  # Conversion mètres vers km
-                
-    if width_unit == "Nm":
-        width = width * 1.852  # Conversion miles nautiques vers km
-    elif width_unit == "m":
-        width = width / 1000  # Conversion mètres vers km
+        length_forward = length_forward / 1000  # Conversion mètres vers km
+        length_backward = length_backward / 1000
+        length_right = length_right / 1000
+        length_left = length_left / 1000              
+   
             
     # Récupérer les coordonnées du point centre
     conn_points = sqlite3.connect("points.db")
@@ -203,7 +209,7 @@ def polygon_coordinates_rectangle_get(viewer):
     center_lat, center_lon = center_result
     
     # Calculer les points du rectangle
-    rectangle_points = utility.calculate_rectangle_points(center_lat, center_lon, length, width, orientation)
+    rectangle_points = utility.calculate_rectangle_points(center_lat, center_lon, length_forward, length_backward, length_right, length_left, orientation)
     
     # Convertir au format attendu pour la base de données
     for lon, lat in rectangle_points:
@@ -212,7 +218,7 @@ def polygon_coordinates_rectangle_get(viewer):
     # Ajouter la flèche d'orientation si demandée
     add_arrow = viewer.rectangle_add_arrow_var.get()
     if add_arrow:
-        arrow_points = utility.calculate_arrow_points(center_lat, center_lon, length, orientation, width)
+        arrow_points = utility.calculate_arrow_points(center_lat, center_lon, length_forward, orientation, length_right)
         # Ajouter les points de la flèche après le rectangle
         for lon, lat in arrow_points:
             coordinates_list.append(f"{lon},{lat},0")

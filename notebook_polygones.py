@@ -89,7 +89,7 @@ def fill_rectangle_frame(viewer):
     viewer.polygone_utility_frame.grid_columnconfigure(1, weight=1)
 
     # Sélection du centre du rectangle
-    tk.Label(viewer.polygone_utility_frame, text="Centre du rectangle :", width=25, anchor="w").grid(row=0, column=0, padx=5, pady=5)
+    tk.Label(viewer.polygone_utility_frame, text="Centre de la boite :", width=25, anchor="w").grid(row=0, column=0, padx=5, pady=5)
     
     # Récupérer les points depuis la base
     try:
@@ -106,36 +106,50 @@ def fill_rectangle_frame(viewer):
         viewer.rectangle_center_combo.current(0)
     viewer.rectangle_center_combo.grid(row=0, column=1, padx=(0, 10), sticky="ew")
 
-    # Longueur
-    tk.Label(viewer.polygone_utility_frame, text="Longueur :", width=25, anchor="w").grid(row=1, column=0, padx=5, pady=5)
+    # Orientation
+    tk.Label(viewer.polygone_utility_frame, text="Orientation (degrés) :", width=25, anchor="w").grid(row=1, column=0, padx=5, pady=5)
+    viewer.rectangle_orientation_entry = ttk.Entry(viewer.polygone_utility_frame,width=12,justify="center")
+    viewer.rectangle_orientation_entry.grid(row=1, column=1, padx=(0, 10), sticky="ew")
+
+    # Longueur vers l'avant
+    tk.Label(viewer.polygone_utility_frame, text="Longueur vers l'avant :", width=25, anchor="w").grid(row=2, column=0, padx=5, pady=5)
     long_frame = tk.Frame(viewer.polygone_utility_frame)
-    long_frame.grid(row=1, column=1, padx=(0, 10), sticky="ew")
+    long_frame.grid(row=2, column=1, padx=(0, 10), sticky="ew")
     long_frame.grid_columnconfigure(0, weight=1)
 
-    viewer.rectangle_length_entry = tk.Entry(long_frame,width=12,justify="center")
-    viewer.rectangle_length_entry.grid(row=0, column=0, sticky="w")
+    viewer.rectangle_length_forward_entry = tk.Entry(long_frame,width=12,justify="center")
+    viewer.rectangle_length_forward_entry.grid(row=0, column=0, sticky="w")
 
-    viewer.rectangle_length_unit = ttk.Combobox(long_frame, values=["m", "Nm"], state="readonly", width=5)
-    viewer.rectangle_length_unit.current(0)
-    viewer.rectangle_length_unit.grid(row=0, column=1, sticky="e")    
+    viewer.rectangle_length_forward_unit = ttk.Combobox(long_frame, values=["m", "Nm"], state="readonly", width=5)
+    viewer.rectangle_length_forward_unit.current(0)
+    viewer.rectangle_length_forward_unit.grid(row=0, column=1, sticky="e")    
 
-    # Largeur
-    tk.Label(viewer.polygone_utility_frame, text="Largeur :", width=25, anchor="w").grid(row=3, column=0, padx=5, pady=5)
+    # Longueur vers l'arrière
+    tk.Label(viewer.polygone_utility_frame, text="Longueur vers l'arrière :", width=25, anchor="w").grid(row=3, column=0, padx=5, pady=5)
+    long_frame = tk.Frame(viewer.polygone_utility_frame)
+    long_frame.grid(row=3, column=1, padx=(0, 10), sticky="ew")
+    long_frame.grid_columnconfigure(0, weight=1)
+
+    viewer.rectangle_length_backward_entry = tk.Entry(long_frame,width=12,justify="center")
+    viewer.rectangle_length_backward_entry.grid(row=0, column=0, sticky="w")
+
+    # Longueur droite
+    tk.Label(viewer.polygone_utility_frame, text="Longueur vers la droite:", width=25, anchor="w").grid(row=4, column=0, padx=5, pady=5)
     width_frame = tk.Frame(viewer.polygone_utility_frame)
-    width_frame.grid(row=3, column=1, padx=(0, 10), sticky="ew")
+    width_frame.grid(row=4, column=1, padx=(0, 10), sticky="ew")
     width_frame.grid_columnconfigure(0, weight=1)
 
-    viewer.rectangle_width_entry = tk.Entry(width_frame,width=12,justify="center")
-    viewer.rectangle_width_entry.grid(row=0, column=0, sticky="w")
-    viewer.rectangle_width_unit = ttk.Combobox(width_frame, values=["m", "Nm"], state="readonly", width=5)
-    viewer.rectangle_width_unit.current(0)
-    viewer.rectangle_width_unit.grid(row=0, column=1, sticky="e")    
+    viewer.rectangle_length_right_entry = tk.Entry(width_frame,width=12,justify="center")
+    viewer.rectangle_length_right_entry.grid(row=0, column=0, sticky="w")    
+    
+    # Longueur gauche
+    tk.Label(viewer.polygone_utility_frame, text="Longueur vers la gauche:", width=25, anchor="w").grid(row=6, column=0, padx=5, pady=5)
+    width_frame = tk.Frame(viewer.polygone_utility_frame)
+    width_frame.grid(row=6, column=1, padx=(0, 10), sticky="ew")
+    width_frame.grid_columnconfigure(0, weight=1)
 
-
-    # Orientation
-    tk.Label(viewer.polygone_utility_frame, text="Orientation (degrés) :", width=25, anchor="w").grid(row=5, column=0, padx=5, pady=5)
-    viewer.rectangle_orientation_entry = ttk.Entry(viewer.polygone_utility_frame,width=12)
-    viewer.rectangle_orientation_entry.grid(row=5, column=1, padx=(0, 10), sticky="ew")
+    viewer.rectangle_length_left_entry = tk.Entry(width_frame,width=12,justify="center")
+    viewer.rectangle_length_left_entry.grid(row=6, column=0, sticky="w")    
 
     # Ajouter flèche d'orientation
     viewer.rectangle_add_arrow_var = tk.IntVar()
@@ -312,11 +326,9 @@ def update_onglet_polygones(viewer):
         fill_cercles_frame(viewer)
 
     # Remplissage du cadre contenant les chamsp de saisie communs
-
     fill_input_frame_polygones(viewer)
     
     # Charge les polygones dans le treeview et rafraichie la carte
-
     database.load_item_treeview(viewer,"polygones.db",viewer.polygones_checked_items,viewer.polygones_tree,"polygons")
 
     # Réinitialiser les points cliqués et la ligne temporaire
@@ -385,8 +397,7 @@ def create_mode_creation_polygone(viewer):
         width=40,
         variable=viewer.polygone_creation_mode,
         value="points",
-        command=lambda: update_onglet_polygones(viewer),
-    ).grid(row=0, column=0, padx=5, pady=5) 
+        command=lambda: update_onglet_polygones(viewer),).grid(row=0, column=0, padx=5, pady=5) 
 
     polygone_carte_radiobutton = ttk.Radiobutton(
         viewer.polygones_creation_frame,
@@ -394,19 +405,17 @@ def create_mode_creation_polygone(viewer):
         width=40,
         variable=viewer.polygone_creation_mode,
         value="carte",
-        command=lambda: update_onglet_polygones(viewer),
-    )
+        command=lambda: update_onglet_polygones(viewer),)
+
     polygone_carte_radiobutton.grid(row=1, column=0, padx=5, pady=5)
     utility.ToolTip(polygone_carte_radiobutton,"● SHIFT + CLIC GAUCHE pour générer un point sur la carte.\n"
                                             "● SHIFT + CLIC DROIT pour effacer le dernier point.\n"
                                             "● CLIC GAUCHE MAINTENU sur le polygone pour le translater sur la carte.\n"
                                             "● SHIFT + CLIC GAUCHE MAINTENU sur un point existant pour le déplacer.")
 
-
-
     ttk.Radiobutton(
         viewer.polygones_creation_frame,
-        text="Création d'un rectangle",
+        text="Création d'une boite",
         width=40,
         variable=viewer.polygone_creation_mode,
         value="rectangle",
