@@ -133,28 +133,42 @@ def fill_rectangle_frame(viewer):
     viewer.rectangle_length_backward_entry = tk.Entry(long_frame,width=12,justify="center")
     viewer.rectangle_length_backward_entry.grid(row=0, column=0, sticky="w")
 
-    # Longueur droite
-    tk.Label(viewer.polygone_utility_frame, text="Longueur vers la droite:", width=25, anchor="w").grid(row=4, column=0, padx=5, pady=5)
+    # Longueur gauche
+    tk.Label(viewer.polygone_utility_frame, text="Longueur vers la gauche:", width=25, anchor="w").grid(row=4, column=0, padx=5, pady=5)
     width_frame = tk.Frame(viewer.polygone_utility_frame)
     width_frame.grid(row=4, column=1, padx=(0, 10), sticky="ew")
     width_frame.grid_columnconfigure(0, weight=1)
 
-    viewer.rectangle_length_right_entry = tk.Entry(width_frame,width=12,justify="center")
-    viewer.rectangle_length_right_entry.grid(row=0, column=0, sticky="w")    
-    
-    # Longueur gauche
-    tk.Label(viewer.polygone_utility_frame, text="Longueur vers la gauche:", width=25, anchor="w").grid(row=6, column=0, padx=5, pady=5)
+    viewer.rectangle_length_left_entry = tk.Entry(width_frame,width=12,justify="center")
+    viewer.rectangle_length_left_entry.grid(row=4, column=0, sticky="w")  
+
+
+    # Longueur droite
+    tk.Label(viewer.polygone_utility_frame, text="Longueur vers la droite:", width=25, anchor="w").grid(row=5, column=0, padx=5, pady=5)
     width_frame = tk.Frame(viewer.polygone_utility_frame)
-    width_frame.grid(row=6, column=1, padx=(0, 10), sticky="ew")
+    width_frame.grid(row=5, column=1, padx=(0, 10), sticky="ew")
     width_frame.grid_columnconfigure(0, weight=1)
 
-    viewer.rectangle_length_left_entry = tk.Entry(width_frame,width=12,justify="center")
-    viewer.rectangle_length_left_entry.grid(row=6, column=0, sticky="w")    
+    viewer.rectangle_length_right_entry = tk.Entry(width_frame,width=12,justify="center")
+    viewer.rectangle_length_right_entry.grid(row=5, column=0, sticky="w")    
+    
+      
 
     # Ajouter flèche d'orientation
     viewer.rectangle_add_arrow_var = tk.IntVar()
-    viewer.rectangle_add_arrow_radio = ttk.Checkbutton(viewer.polygone_utility_frame, text="Ajouter flèche", variable=viewer.rectangle_add_arrow_var)
+    viewer.rectangle_add_arrow_radio = ttk.Checkbutton(viewer.polygone_utility_frame, text="Ajouter indicateur d'orientation", variable=viewer.rectangle_add_arrow_var)
     viewer.rectangle_add_arrow_radio.grid(row=7, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5)
+    utility.ToolTip(viewer.rectangle_add_arrow_radio, text="Rajoute une barre sur la boite dans le sens de l'orientation.\n" )
+
+    # Pattern type hippodrome
+    viewer.pattern_rectangle_var = tk.IntVar()
+    viewer.rectangle_add_pattern_check = ttk.Checkbutton(
+        viewer.polygone_utility_frame,
+        text="Tracer un hippodrome",
+        variable=viewer.pattern_rectangle_var,
+    )
+    viewer.rectangle_add_pattern_check.grid(row=8, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5)
+    utility.ToolTip(viewer.rectangle_add_pattern_check, text="Complete la boite sous forme d'hippodrome.\n" )
 
 def fill_cercles_frame(viewer):
     
@@ -351,7 +365,7 @@ def create_treeview_polygones(viewer):
                                    "\u25CF Double-clic sur le nom du polygone pour centrer la carte sur le premier point")  
 
     # Création du Treeview
-    viewer.polygones_tree = ttk.Treeview(viewer.polygones_treeview_frame, columns=("selected", "nom"), show="headings", height=10)
+    viewer.polygones_tree = ttk.Treeview(viewer.polygones_treeview_frame, columns=("selected", "nom"), show="headings", height=5)
     viewer.polygones_tree.heading("selected", text="Export")
     viewer.polygones_tree.heading("nom", text="Nom")
 

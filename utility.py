@@ -30,55 +30,53 @@ def create_point_from_bearing_distance(start_point, distance_km, bearing_deg):
     return lat, lon
 
 
-def calculate_arrow_points(center_lat, center_lon, length_km, bearing_deg, width_km=None):
-    """Calcul d'une flèche d'orientation simple pour indiquer la direction d'un rectangle
-    Basé sur l'implémentation Streamlit : ligne simple du milieu du côté avant vers l'extérieur
-    
-    Args:
-        center_lat, center_lon: Coordonnées du centre du rectangle
-        length_km: Longueur du rectangle en km
-        bearing_deg: Orientation du rectangle en degrés (0° = Nord)
-        width_km: Largeur du rectangle en km (pour calculer la longueur de la flèche)
-    
-    Returns:
-        Liste des points (lon, lat) formant la flèche (polygone fermé à 3 points)
+def calculate_arrow_points(center_lat, center_lon, length_forward_km, length_backward_km=None, length_right_km=None, length_left_km=None, bearing_deg=None, width_km=None):
+    """Calcul d'une flèche placée au milieu du côté avant du rectangle, orientée dans le sens du rectangle.
+
+    Si l'appel est fait avec l'ancienne signature, la fonction reste compatible.
+    Sinon, elle utilise la longueur avant et le décalage latéral du rectangle asymétrique
+    pour calculer le milieu du segment avant puis y placer la pointe de la flèche.
     """
-    # Rayon de la Terre en km
-    R = 6371.0
-    
-    # Convertir en radians
-    bearing_rad = math.radians(bearing_deg)
-    lat_rad = math.radians(center_lat)
-    lon_rad = math.radians(center_lon)
-    
-    # Point de départ : milieu du côté avant du rectangle (orienté vers le cap)
-    front_offset_km = length_km / 2
-    arrow_start_lat_rad = math.asin(math.sin(lat_rad) * math.cos(front_offset_km / R) +
-                                   math.cos(lat_rad) * math.sin(front_offset_km / R) * math.cos(bearing_rad))
-    
-    arrow_start_lon_rad = lon_rad + math.atan2(math.sin(bearing_rad) * math.sin(front_offset_km / R) * math.cos(lat_rad),
-                                              math.cos(front_offset_km / R) - math.sin(lat_rad) * math.sin(arrow_start_lat_rad))
-    
-    arrow_start_lat = math.degrees(arrow_start_lat_rad)
-    arrow_start_lon = math.degrees(arrow_start_lon_rad)
-    
-    # Point de fin de la flèche (longueur = moitié de la largeur du rectangle)
-    arrow_length_km = (width_km / 2) if width_km else (length_km / 4)  # Fallback si width_km non fourni
-    arrow_end_lat_rad = math.asin(math.sin(math.radians(arrow_start_lat)) * math.cos(arrow_length_km / R) +
-                                 math.cos(math.radians(arrow_start_lat)) * math.sin(arrow_length_km / R) * math.cos(bearing_rad))
-    
-    arrow_end_lon_rad = math.radians(arrow_start_lon) + math.atan2(math.sin(bearing_rad) * math.sin(arrow_length_km / R) * math.cos(math.radians(arrow_start_lat)),
-                                                                  math.cos(arrow_length_km / R) - math.sin(math.radians(arrow_start_lat)) * math.sin(arrow_end_lat_rad))
-    
-    arrow_end_lat = math.degrees(arrow_end_lat_rad)
-    arrow_end_lon = math.degrees(arrow_end_lon_rad)
-    
-    # Retourner les trois points de la flèche pour former un polygone fermé
-    # Point de départ → Pointe de la flèche → Retour au point de départ
+    if bearing_deg is None:
+        # Compatibilité avec l'ancienne signature : calculate_arrow_points(center_lat, center_lon, length_km, bearing_deg, width_km=None)
+        bearing_deg = length_backward_km
+        width_km = length_right_km
+        length_backward_km = length_forward_km
+        length_right_km = width_km or length_forward_km / 2.0
+        length_left_km = width_km or length_forward_km / 2.0
+
+    center_point = {"lat": center_lat, "lon": center_lon}
+
+    if width_km is not None:
+        arrow_length_km = width_km / 2.0
+    else:
+        arrow_length_km = max(length_forward_km, length_backward_km, length_right_km or 0, length_left_km or 0) / 4.0
+
+    lateral_offset_km = (length_right_km - length_left_km) / 2.0
+
+    arrow_base_lat, arrow_base_lon = create_point_from_bearing_distance(
+        center_point,
+        length_forward_km,
+        bearing_deg,
+    )
+
+    if lateral_offset_km != 0:
+        arrow_base_lat, arrow_base_lon = create_point_from_bearing_distance(
+            {"lat": arrow_base_lat, "lon": arrow_base_lon},
+            abs(lateral_offset_km),
+            (bearing_deg + 90) % 360 if lateral_offset_km >= 0 else (bearing_deg - 90) % 360,
+        )
+
+    arrow_tip_lat, arrow_tip_lon = create_point_from_bearing_distance(
+        {"lat": arrow_base_lat, "lon": arrow_base_lon},
+        arrow_length_km,
+        bearing_deg,
+    )
+
     return [
-        (arrow_start_lon, arrow_start_lat),  # Point de départ (milieu côté avant)
-        (arrow_end_lon, arrow_end_lat),      # Pointe de la flèche
-        (arrow_start_lon, arrow_start_lat)   # Retour au point de départ (fermeture)
+        (arrow_base_lon, arrow_base_lat),
+        (arrow_tip_lon, arrow_tip_lat),
+        (arrow_base_lon, arrow_base_lat),
     ]
 
 def calculate_rectangle_points(center_lat, center_lon, length_forward_km, length_backward_km, length_right_km, length_left_km, bearing_deg):

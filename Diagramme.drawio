@@ -499,6 +499,55 @@
             </Array>
           </mxGeometry>
         </mxCell>
+        <mxCell id="Y3qp-zABDjSibhgtd561-16" parent="1" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#f5f5f5;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fontColor=#333333;strokeColor=#666666;" value="&lt;span style=&quot;color: rgb(0, 0, 0); text-align: left; white-space: normal;&quot;&gt;bind_canvas_events&lt;/span&gt;" vertex="1">
+          <mxGeometry height="86" width="404" x="1418" y="1890" as="geometry">
+            <mxRectangle height="30" width="120" x="140" y="200" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Y3qp-zABDjSibhgtd561-19" parent="Y3qp-zABDjSibhgtd561-16" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" value="&lt;font style=&quot;color: rgb(51, 51, 255);&quot;&gt;SHIFT + Clic Gauche&lt;/font&gt; : &lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0));&quot;&gt;(shift_left_click)&lt;/font&gt;" vertex="1">
+          <mxGeometry height="30" width="404" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="Y3qp-zABDjSibhgtd561-21" parent="Y3qp-zABDjSibhgtd561-16" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" value="&lt;font style=&quot;color: rgb(51, 51, 255);&quot;&gt;SHIFT + Clic Droit&lt;/font&gt;&amp;nbsp;: &lt;font style=&quot;color: light-dark(rgb(0, 0, 0), rgb(0, 0, 0));&quot;&gt;(shift_right_click)&lt;/font&gt;" vertex="1">
+          <mxGeometry height="30" width="404" y="56" as="geometry" />
+        </mxCell>
+        <mxCell id="Y3qp-zABDjSibhgtd561-23" parent="1" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#f5f5f5;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fontColor=#333333;strokeColor=#666666;" value="&lt;span style=&quot;color: rgb(0, 0, 0); text-align: left; white-space: normal;&quot;&gt;shift_left_click&lt;/span&gt;" vertex="1">
+          <mxGeometry height="56" width="404" x="1418" y="2000" as="geometry">
+            <mxRectangle height="30" width="120" x="140" y="200" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Y3qp-zABDjSibhgtd561-26" parent="Y3qp-zABDjSibhgtd561-23" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontColor=default;labelBackgroundColor=none;" value="Onglet Points + Carte : (left_click_get_coordinate)&amp;nbsp;" vertex="1">
+          <mxGeometry height="30" width="404" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="Y3qp-zABDjSibhgtd561-29" parent="1" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#f5f5f5;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;html=1;fontColor=#333333;strokeColor=#666666;" value="&lt;span style=&quot;color: rgb(0, 0, 0); text-align: left; white-space: normal;&quot;&gt;left_click_get_coordinate&lt;/span&gt;" vertex="1">
+          <mxGeometry height="86" width="404" x="1418" y="2080" as="geometry">
+            <mxRectangle height="30" width="120" x="140" y="200" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Y3qp-zABDjSibhgtd561-30" parent="Y3qp-zABDjSibhgtd561-29" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontColor=default;labelBackgroundColor=none;" value="Recupere les coordonnes et met a jour les champs Lat et Lon" vertex="1">
+          <mxGeometry height="30" width="404" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="Y3qp-zABDjSibhgtd561-31" parent="Y3qp-zABDjSibhgtd561-29" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontColor=default;labelBackgroundColor=none;" value="Affiche le point temporaire :(draw_temp_point)&amp;nbsp;" vertex="1">
+          <mxGeometry height="30" width="404" y="56" as="geometry" />
+        </mxCell>
+        <mxCell id="Y3qp-zABDjSibhgtd561-33" edge="1" parent="1" source="Y3qp-zABDjSibhgtd561-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="Y3qp-zABDjSibhgtd561-23">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1400" y="1931" />
+              <mxPoint x="1400" y="2030" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Y3qp-zABDjSibhgtd561-34" edge="1" parent="1" source="Y3qp-zABDjSibhgtd561-26" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="Y3qp-zABDjSibhgtd561-29">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1398" y="2041" />
+              <mxPoint x="1398" y="2123" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Y3qp-zABDjSibhgtd561-35" parent="1" style="text;whiteSpace=wrap;html=1;" value="add_clicked_point" vertex="1">
+          <mxGeometry height="40" width="130" x="1610" y="2210" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>

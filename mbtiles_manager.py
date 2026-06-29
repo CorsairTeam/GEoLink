@@ -9,11 +9,13 @@ import utility
 class MbtilesManager:    
     
     def add_clicked_point(self, event):
-        """Gérer les clics pour la création de lignes"""
+        """Ajoute le point cliqué à clicked_points et redessine la ligne temporaire"""
+
         selected_tab = self.viewer.notebook.select()
         tab_text = self.viewer.notebook.tab(selected_tab, "text").strip()
         in_line_mode = (tab_text == "Lignes" and self.viewer.ligne_creation_mode.get() == "carte")
         in_poly_mode = (tab_text == "Polygones" and self.viewer.polygone_creation_mode.get() == "carte")
+        
         if not in_line_mode and not in_poly_mode:
             return
 
@@ -547,8 +549,8 @@ class MbtilesManager:
         self.viewer.drag_point_index = None
         self.viewer.drag_original_points = None
 
-    def right_click_get_coordinate(self, event):
-        """Gérer le clic droit sur la carte pour renvoyer les coordonneés si mode Click droit"""
+    def left_click_get_coordinate(self, event):
+        """Gérer le clic gauche sur la carte pour renvoyer les coordonneés """
         if self.viewer.creation_mode.get() != "click":
             return
         
@@ -585,7 +587,7 @@ class MbtilesManager:
             tab_text = self.viewer.notebook.tab(selected_tab, "text")
             
         #     if tab_text == "  Points  ":                
-        #         self.right_click_get_coordinate(event)
+        #         self.left_click_get_coordinate(event)
                 
         #     elif tab_text == "  Lignes  " and self.is_line_creation_mode():
         #         # Mode création de ligne par carte - ne rien faire ici
@@ -610,16 +612,18 @@ class MbtilesManager:
             in_point_mode = (tab_text == "Points" and self.viewer.creation_mode.get() == "click")
             in_line_mode = (tab_text == "Lignes" and self.viewer.ligne_creation_mode.get() == "carte")
             in_poly_mode = (tab_text == "Polygones" and self.viewer.polygone_creation_mode.get() == "carte")
+
         except Exception:
             in_point_mode = in_line_mode = in_poly_mode = False
 
         if in_point_mode:
-            self.right_click_get_coordinate(event)
+            self.left_click_get_coordinate(event)
             return
 
         if in_line_mode or in_poly_mode:
             # Si on est proche d'un point temporaire -> sélectionner ce point pour drag
             idx = self.find_nearest_clicked_point(event.x, event.y)
+            
             if idx is not None:
                 self.viewer.drag_target = "clicked_point"
                 self.viewer.drag_point_index = idx
