@@ -28,8 +28,6 @@ class MBTilesViewer:
         ToolTip.set_enabled(not ToolTip.enabled)
         label = "Afficher les Tooltips" if not ToolTip.enabled else "Masquer les Tooltips"
         self.aide_menu.entryconfig(self.tooltips_menu_index, label=label)  
-        
-            
 
     def on_tab_changed(self, event):
         """Gérer le changement d'onglet"""
@@ -53,7 +51,6 @@ class MBTilesViewer:
                              
         elif tab_text == "Polygones":
             notebook_polygones.update_onglet_polygones(self)            
-            
         
     def setup_menu(self):
         """Gestion des options du menu"""

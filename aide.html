@@ -138,17 +138,20 @@
     }
 
     .image-gallery {
+      --gallery-gap: 12px;
       display: grid;
-      grid-template-columns: repeat(4, minmax(240px, 1fr));
-      gap: 12px;
+      grid-template-columns: 30% 70%;
+      gap: var(--gallery-gap);
       margin: 18px 0;
       align-items: start;
     }
 
     .image-gallery img {
+      display: block;
       width: 100%;
-      height: auto;
+      height: 400px;
       object-fit: contain;
+      object-position: center;
       background: #ffffff;
       border: 1px solid var(--border);
       border-radius: 14px;
@@ -238,30 +241,31 @@
     <section id="points" class="clearfix">
       <h2>Onglet Points</h2>
       <div class="image-gallery">
-        <img src="Images/Onglet Points.jpg" alt="Onglet Points">
-        <img src="Images/Onglet Points 2.jpg" alt="Onglet Points 2">
-        <img src="Images/Onglet Points 3.jpg" alt="Onglet Points 3">
+        <img src="Images/Point2.jpg" alt="Onglet Points 2">
+        <img src="Images/Point1.jpg" alt="Onglet Points">
+        
+       
       </div>
       <h3>Création de points</h3>
       <p>Le premier cadre permet de sélectionner le type de création de point :</p>
       <ul>
-        <li><strong>Coordonnées</strong> : permet de créer un point manuellement en entrant ses coordonnées en choisissant le format dans le menu déroulant.</li>
-        <li><strong>Radial Distance</strong> : permet de créer un point en entrant une distance et un angle depuis un point de référence choisi dans le menu déroulant.</li>
-        <li><strong>Tracé sur la carte</strong> : permet de créer un point en utilisant <code>MAJ + Clic Gauche</code> directement sur la carte.</li>
+        <li><strong>Coordonnées</strong> : création en entrant ses coordonnées (format dans le menu déroulant).</li>
+        <li><strong>Radial Distance</strong> : crée un point en radial distance par rapport à un point de référence (choisi dans le menu déroulant).</li>
+        <li><strong>Tracé sur la carte</strong> : crée un point en utilisant <code>MAJ + Clic Gauche</code> directement sur la carte.</li>
       </ul>
 
       <h3>Personnalisation</h3>
-      <p>Le second cadre permet de personnaliser le point :</p>
+      <p>Ce second cadre qui s'adapte en fonction du type de point permet la saisie des données de création:</p>
       <ul>
-        <li><strong>Nom</strong> : permet de donner un nom au point.</li>
-        <li><strong>Taille</strong> : permet de choisir la taille du point (utilisé uniquement par ForeFlight). Une valeur de 1 correspond à la taille par défaut dans ForeFlight. Une taille de 0,7 (70%) est recommandée pour l'export.</li>
-        <li><strong>Couleur du label</strong> : permet de choisir la couleur du label dans lequel s'affiche le nom du point (utilisé uniquement par ForeFlight).</li>
-        <li><strong>Type</strong> : permet de choisir le type de point (utilisé uniquement par ForeFlight).</li>
-        <li><strong>Couleur</strong> : permet de choisir la couleur du point (utilisé uniquement par ForeFlight).</li>
-        <li><strong>Latitude</strong> : permet de choisir la latitude du point.</li>
-        <li><strong>Longitude</strong> : permet de choisir la longitude du point.</li>
-        <li><strong>Créer le point</strong> : crée le point avec les paramètres sélectionnés.</li>
+        <li><strong>Nom</strong> : Nom du point.</li>
+        <li><strong>Taille</strong> : Taille du point (ForeFlight). Une valeur de 1 correspond à la taille par défaut dans ForeFlight. Une taille de 0,7 (70%) est recommandée pour l'export dans ForeFlight.</li>
+        <li><strong>Type de point</strong> : Forme du point (ForeFlight).</li>
+        <li><strong>Couleur</strong> : Couleur du point (ForeFlight).</li>
+        <li><strong>Latitude</strong> : Latitude du point.</li>
+        <li><strong>Longitude</strong> : Longitude du point.</li>
+        <li><strong>Créer le point</strong> : Crée le point avec les paramètres sélectionnés.</li>
       </ul>
+       <p>SDVFR ne tient pas compte des paramètres de personnalisation. Il est nécessaire de configurer les tailles, couleurs des lignes, points et polygones aprés l'export dans la tablette.</p>
 
       <h3>Liste des points</h3>
       <p>Le troisième cadre permet de lister l'ensemble des points créés :</p>
@@ -270,7 +274,7 @@
         <li><strong>Select All</strong> permet de sélectionner tous les points.</li>
         <li><strong>Deselect All</strong> permet de désélectionner tous les points.</li>
         <li><strong>Delete</strong> permet d'effacer les points sélectionnés.</li>
-        <li>Cliquer sur le nom d'un point permet de mettre à jour les champs avec ses paramètres et bascule dans la page coordonnées en degrés. Les champs peuvent ensuite être modifiés et un nouvel appui sur le bouton <strong>Créer le point</strong> mettra à jour le point.</li>
+        <li>Cliquer sur le nom du point met à jour les champs avec ses paramètres dans la page coordonnées en degrés. Suite aux modifications, un appui sur le bouton <strong>Créer le point</strong> enregistre le point avec les changements.</li>
         <li>Double-cliquer sur le nom du point centre la carte sur le point.</li>
       </ul>
     </section>

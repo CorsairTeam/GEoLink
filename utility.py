@@ -316,6 +316,15 @@ class ToolTip:
             self.tooltip_window.destroy()
             self.tooltip_window = None
 
+def format_point_scale(scale):
+    """Formate la valeur de taille d'un point sans la réduire à un entier."""
+    try:
+        scale_value = float(scale)
+    except (TypeError, ValueError):
+        return str(scale)
+
+    return f"{scale_value:.1f}".rstrip("0").rstrip(".") or "0"
+
 def point_field_fill(viewer, item):
     """Remplit les champs du point cliqué dans le Tree view.\n
     Bascule dans la page de création par coordonnées"""
@@ -337,8 +346,7 @@ def point_field_fill(viewer, item):
         viewer.nom_entry.insert(0, name)
 
     if hasattr(viewer, "taille_entry"):
-        viewer.taille_entry.delete(0, tk.END)
-        viewer.taille_entry.insert(0, f"{scale:g}")
+        viewer.taille_entry.set(format_point_scale(scale))
 
     if hasattr(viewer, "point_color_entry"):
         viewer.point_color_entry.set(color)
