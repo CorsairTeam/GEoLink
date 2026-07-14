@@ -218,10 +218,12 @@ def polygon_coordinates_rectangle_get(viewer):
     # Ajouter la flèche d'orientation si demandée
     add_arrow = viewer.rectangle_add_arrow_var.get()
     if add_arrow:
-        arrow_points = utility.calculate_arrow_points(center_lat, center_lon, length_forward, orientation, length_right)
+        arrow_points = utility.calculate_arrow_points(center_lat, center_lon, length_forward, length_backward, length_right, length_left, orientation)
         # Ajouter les points de la flèche après le rectangle
         for lon, lat in arrow_points:
             coordinates_list.append(f"{lon},{lat},0")
+        
+        coordinates_list.append(f"{arrow_points[0][0]},{arrow_points[0][1]},0")  # Fermer le polygone de la flèche en revenant au premier point de la flèche
     
     return coordinates_list
 

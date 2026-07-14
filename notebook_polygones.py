@@ -287,23 +287,12 @@ def fill_input_frame_polygones(viewer):
     viewer.polygone_fill_radio = ttk.Checkbutton(viewer.polygones_input_frame, text="Remplir", variable=viewer.polygone_fill_var)
     viewer.polygone_fill_radio.grid(row=4, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5)
 
-    # #  Modifier
-    # viewer.polygone_modif_var = tk.IntVar()
-    # viewer.polygone_modif_radio = ttk.Checkbutton(viewer.polygones_input_frame, text="Modifier", variable=viewer.polygone_modif_var)
-    # viewer.polygone_modif_radio.grid(row=5, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5)
-    # ToolTip(viewer.polygone_modif_radio, "● Clic sur la case à cocher pour passer en mode modification\n"
-    #                                "● Sélectionner un polygone dans le tableau pour le modifier\n"                                   
-    #                                "● Modifier les champs du polygone sélectionnée\n"
-    #                                "● Cliquer sur le bouton 'Créer le polygone' pour valider")  
-
-
     # Bouton créer
     tk.Button(
         viewer.polygones_input_frame,
         text="Créer le polygone",
         command=lambda: database.create_polygone(viewer),
     ).grid(row=5, column=1, columnspan=2, sticky="ew", pady=5, padx=(0, 10))  
-
 
 def update_onglet_polygones(viewer):
     """Mettre à jour l'interface selon le mode de création sélectionné"""    
@@ -351,7 +340,7 @@ def create_treeview_polygones(viewer):
                                    "\u25CF Double-clic sur le nom du polygone pour centrer la carte sur le premier point")  
 
     # Création du Treeview
-    viewer.polygones_tree = ttk.Treeview(viewer.polygones_treeview_frame, columns=("selected", "nom"), show="headings", height=10)
+    viewer.polygones_tree = ttk.Treeview(viewer.polygones_treeview_frame, columns=("selected", "nom"), show="headings", height=5)
     viewer.polygones_tree.heading("selected", text="Export")
     viewer.polygones_tree.heading("nom", text="Nom")
 

@@ -310,7 +310,7 @@ def fill_coordinates_radial_frame(viewer):
             viewer.input_frame,
             text="Créez d'abord un point de référence",
             fg="gray",
-        ).pack(pady=(10, 10))
+        ).grid(row=5, column=0, columnspan=2, sticky="w", padx=5, pady=(10, 10))
 
 def fill_map_frame(viewer):
     # Latitude
