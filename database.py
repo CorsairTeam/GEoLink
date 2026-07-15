@@ -5,6 +5,87 @@ import tkinter as tk
 import utility
 
 
+def _has_coordinate_value(value):
+    """Vérifie qu'une coordonnée n'est ni vide ni absente, y compris si elle vaut 0."""
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return value.strip() != ""
+    return True
+
+
+def _calculate_hippodrome_points(center_lat, center_lon, length_forward, length_backward, length_right, length_left, orientation):
+    """Calculer les points d'un hippodrome à partir des dimensions du rectangle."""
+    if length_right <= 0 and length_left <= 0:
+        return []
+
+    radius_km = (length_right + length_left) / 2.0
+    if radius_km <= 0:
+        return []
+
+    center_point = {"lat": center_lat, "lon": center_lon}
+    transverse_offset_km = (length_right - length_left) / 2.0
+
+    def offset_point(point_data, distance_km, bearing_deg):
+        if distance_km == 0:
+            return point_data["lat"], point_data["lon"]
+        return utility.create_point_from_bearing_distance(
+            point_data,
+            abs(distance_km),
+            bearing_deg if distance_km <= 0 else (bearing_deg + 180) % 360,
+        )
+    
+    def build_arc_points(center_point_data, start_bearing, end_bearing, clockwise, num_points=20):
+        points = []
+        if clockwise:
+            span = (start_bearing - end_bearing) % 360
+            for index in range(num_points):
+                bearing = (start_bearing - (span / (num_points - 1)) * index) % 360
+                lat, lon = utility.create_point_from_bearing_distance(center_point_data, radius_km, bearing)
+                points.append((lon, lat))
+        else:
+            span = (end_bearing - start_bearing) % 360
+            for index in range(num_points):
+                bearing = (start_bearing + (span / (num_points - 1)) * index) % 360
+                lat, lon = utility.create_point_from_bearing_distance(center_point_data, radius_km, bearing)
+                points.append((lon, lat))
+        return points
+    
+    front_center_lat, front_center_lon = utility.create_point_from_bearing_distance(center_point, length_forward, orientation)
+    back_center_lat, back_center_lon = utility.create_point_from_bearing_distance(center_point, length_backward, (orientation + 180) % 360)
+
+    lateral_bearing = (orientation + 90) % 360
+    if transverse_offset_km < 0:
+        lateral_bearing = (orientation - 90) % 360
+
+    front_center_lat, front_center_lon = offset_point(
+        {"lat": front_center_lat, "lon": front_center_lon},
+        transverse_offset_km,
+        lateral_bearing,
+    )
+    back_center_lat, back_center_lon = offset_point(
+        {"lat": back_center_lat, "lon": back_center_lon},
+        transverse_offset_km,
+        lateral_bearing,
+    )
+
+    front_center = {"lat": front_center_lat, "lon": front_center_lon}
+    back_center = {"lat": back_center_lat, "lon": back_center_lon}
+
+    front_arc_points = build_arc_points(front_center, (orientation + 90) % 360, (orientation - 90) % 360, clockwise=True)
+    back_arc_points = list(reversed(build_arc_points(back_center, (orientation + 90) % 360, (orientation - 90) % 360, clockwise=False)))
+
+    if not front_arc_points or not back_arc_points:
+        return []
+
+    points = list(front_arc_points)
+    #points.append(back_arc_points[0])
+    # points.extend(back_arc_points[1:])
+    # points.append(front_arc_points[0])
+    points.extend(back_arc_points)
+    return points
+
+
 def point_add(name, lat, lon, alt, scale, icon, color, hotspot_x, hotspot_y, label_color):
     """Ajouter un point à la base de données"""
 
@@ -214,10 +295,34 @@ def polygon_coordinates_rectangle_get(viewer):
     # Convertir au format attendu pour la base de données
     for lon, lat in rectangle_points:
         coordinates_list.append(f"{lon},{lat},0")
+
+    # Vérifier si l'utilisateur souhaite ajouter un hippodrome
+    pattern_var = getattr(viewer, "pattern_rectangle_var", None)
+    add_pattern = bool(pattern_var.get()) if pattern_var is not None else False
+
+    if add_pattern:
+        hippodrome_points = _calculate_hippodrome_points(
+            center_lat,
+            center_lon,
+            length_forward,
+            length_backward,
+            length_right,
+            length_left,
+            orientation,
+        )
+        if hippodrome_points:
+            coordinates_list =[]
+            for lon, lat in hippodrome_points:
+                coordinates_list.append(f"{lon},{lat},0")
+            return coordinates_list
+
+   
+
+
     
-    # Ajouter la flèche d'orientation si demandée
+    # # Ajouter la flèche d'orientation si demandée et si hyppodrome non coché
     add_arrow = viewer.rectangle_add_arrow_var.get()
-    if add_arrow:
+    if add_arrow and not add_pattern:
         arrow_points = utility.calculate_arrow_points(center_lat, center_lon, length_forward, length_backward, length_right, length_left, orientation)
         # Ajouter les points de la flèche après le rectangle
         for lon, lat in arrow_points:
@@ -612,7 +717,7 @@ def create_point(viewer):
         messagebox.showerror("Erreur", "Le nom du point est obligatoire")
         return
 
-    if not lat_text or not lon_text:
+    if not _has_coordinate_value(lat_text) or not _has_coordinate_value(lon_text):
         messagebox.showerror("Erreur", "Les coordonnées sont obligatoires")
         return    
 
@@ -692,7 +797,7 @@ def coord_point_from_click(viewer):
     lat_text = viewer.click_lat_entry.get()
     lon_text = viewer.click_lon_entry.get()
     
-    if not lat_text or not lon_text:
+    if not _has_coordinate_value(lat_text) or not _has_coordinate_value(lon_text):
         messagebox.showerror("Erreur", "Cliquez d'abord sur la carte pour sélectionner les coordonnées")
         return
         
@@ -714,7 +819,7 @@ def coord_point_from_deg(viewer):
     lat_text = viewer.lat_entry.get().strip()
     lon_text = viewer.lon_entry.get().strip()  
 
-    if not lat_text or not lon_text:
+    if not _has_coordinate_value(lat_text) or not _has_coordinate_value(lon_text):
         messagebox.showerror("Erreur", "Les coordonnées sont obligatoires")
         return
 

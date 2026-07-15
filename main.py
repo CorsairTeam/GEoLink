@@ -11,7 +11,7 @@ import notebook_lines
 import notebook_polygones
 import import_export_manager
 
-# Ligne de commande compilation : pyinstaller --noconsole --add-data "aide.html;." main.py
+# Ligne de commande compilation : pyinstaller --noconsole --add-data "aide.html;." --add-data "Images;Images" main.py
 
 class MBTilesViewer:
     

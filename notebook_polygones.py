@@ -156,6 +156,17 @@ def fill_rectangle_frame(viewer):
     viewer.rectangle_add_arrow_radio = ttk.Checkbutton(viewer.polygone_utility_frame, text="Ajouter flèche", variable=viewer.rectangle_add_arrow_var)
     viewer.rectangle_add_arrow_radio.grid(row=7, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5)
 
+     # Transformation du rectangle en hippodrome
+    viewer.pattern_rectangle_var = tk.IntVar()
+    viewer.rectangle_add_pattern_check = ttk.Checkbutton(
+        viewer.polygone_utility_frame,
+        text="Tracer un hippodrome",
+        variable=viewer.pattern_rectangle_var,
+    )
+    viewer.rectangle_add_pattern_check.grid(row=8, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5)
+    utility.ToolTip(viewer.rectangle_add_pattern_check, text="Complete la boite sous forme d'hippodrome.\n" )
+
+
 def fill_cercles_frame(viewer):
     
     # polygone_utility_frame : Configurer la colonne 1 pour qu'elle s'étende
