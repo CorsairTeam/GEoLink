@@ -14,6 +14,24 @@ def _has_coordinate_value(value):
     return True
 
 
+def _validate_non_negative_length_value(value):
+    """Vérifie qu'une longueur est numérique et supérieure ou égale à 0."""
+    if value is None:
+        return False
+
+    if isinstance(value, str):
+        value = value.strip()
+        if value == "":
+            return False
+
+    try:
+        numeric_value = float(value)
+    except (TypeError, ValueError):
+        return False
+
+    return numeric_value >= 0
+
+
 def _calculate_hippodrome_points(center_lat, center_lon, length_forward, length_backward, length_right, length_left, orientation):
     """Calculer les points d'un hippodrome à partir des dimensions du rectangle."""
     if length_right <= 0 and length_left <= 0:
@@ -32,7 +50,7 @@ def _calculate_hippodrome_points(center_lat, center_lon, length_forward, length_
         return utility.create_point_from_bearing_distance(
             point_data,
             abs(distance_km),
-            bearing_deg if distance_km <= 0 else (bearing_deg + 180) % 360,
+            bearing_deg,
         )
     
     def build_arc_points(center_point_data, start_bearing, end_bearing, clockwise, num_points=20):
@@ -246,8 +264,13 @@ def polygon_coordinates_rectangle_get(viewer):
     length_left_str = viewer.rectangle_length_left_entry.get().strip()
     orientation_str = viewer.rectangle_orientation_entry.get().strip() or "0"
     
-    if not length_forward_str or not length_backward_str or not length_right_str or not length_left_str:
-        messagebox.showerror("Erreur", "Veuillez entrer les longueurs de la boite")
+    if not all([
+        _validate_non_negative_length_value(length_forward_str),
+        _validate_non_negative_length_value(length_backward_str),
+        _validate_non_negative_length_value(length_right_str),
+        _validate_non_negative_length_value(length_left_str),
+    ]):
+        messagebox.showerror("Erreur", "Les longueurs doivent être des valeurs positives ou nulles")
         return
             
     try:
